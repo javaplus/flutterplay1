@@ -1,0 +1,13 @@
+services:
+  flutter-app:
+    build: .
+    volumes:
+      - ..:/workspace:cached
+    # 'privileged' is required to access host USB devices for the phone
+    privileged: true
+    network_mode: host
+    devices:
+      - "/dev/bus/usb:/dev/bus/usb"
+    environment:
+      - DISPLAY=$DISPLAY # For optional Linux GUI debugging
+    command: sleep infinity

@@ -1,0 +1,16 @@
+{
+  "name": "Flutter AI Dev Env",
+  "dockerComposeFile": "./docker-compose.yml",
+  "service": "flutter-app",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Dart-Code.flutter",
+        "GitHub.copilot",
+        "GitHub.copilot-chat"
+      ]
+    }
+  },
+  "remoteUser": "root"
+}
