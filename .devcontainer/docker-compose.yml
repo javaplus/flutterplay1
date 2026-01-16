@@ -3,6 +3,7 @@ services:
     build: .
     volumes:
       - ..:/workspace:cached
+      - ~/.ssh:/root/.ssh:cached
     # 'privileged' is required to access host USB devices for the phone
     privileged: true
     network_mode: host
