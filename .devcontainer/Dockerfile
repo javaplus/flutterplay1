@@ -22,7 +22,13 @@ RUN mkdir -p $ANDROID_SDK_ROOT/cmdline-tools && \
     rm /tmp/tools.zip
 
 ENV PATH="$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools"
-
+# Update package manager cache, install cmake build tool, and clean up apt cache to reduce image size.
+# This follows Docker best practices by combining multiple commands in a single RUN instruction
+# to minimize layer count and keep the final image lean.
+# Automatically answer 'yes' to all prompts during package installation,
+# allowing apt-get to proceed without waiting for user confirmation.
+# This is essential in Docker builds where interactive prompts cannot be handled.
+RUN apt-get update && apt-get install cmake -y && apt-get install ninja-build -y && rm -rf /var/lib/apt/lists/*
 # Accept Android Licenses
 RUN yes | sdkmanager --licenses
 

@@ -13,5 +13,5 @@
     }
   },
   "remoteUser": "root",
-  "postCreateCommand": "chmod 700 ~/.ssh && chmod 600 ~/.ssh/* && chmod 644 ~/.ssh/*.pub 2>/dev/null || true"
+  "postCreateCommand": "chmod 700 ~/.ssh && chmod 600 ~/.ssh/* && chmod 644 ~/.ssh/*.pub 2>/dev/null || true && adb connect 192.168.1.233:43543"
 }

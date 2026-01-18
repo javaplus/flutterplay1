@@ -4,6 +4,7 @@ services:
     volumes:
       - ..:/workspace:cached
       - ~/.ssh:/root/.ssh:cached
+      - adb-config:/root/.android
     # 'privileged' is required to access host USB devices for the phone
     privileged: true
     network_mode: host
@@ -12,3 +13,6 @@ services:
     environment:
       - DISPLAY=$DISPLAY # For optional Linux GUI debugging
     command: sleep infinity
+
+volumes:
+  adb-config:
