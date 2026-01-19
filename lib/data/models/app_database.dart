@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(QueryExecutor e) : super(e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -35,6 +35,11 @@ class AppDatabase extends _$AppDatabase {
         // Migration from version 2 to 3: Add RangeSessions and Targets tables
         await m.createTable(rangeSessions);
         await m.createTable(targets);
+      }
+      if (from < 4) {
+        // Migration from version 3 to 4: Remove location column and make weather nullable
+        await m.deleteTable('range_sessions');
+        await m.createTable(rangeSessions);
       }
     },
   );
@@ -143,7 +148,6 @@ extension RangeSessionExtension on RangeSessionData {
     return domain_session.RangeSession(
       id: sessionId,
       date: date,
-      location: location,
       firearmId: firearmId,
       loadRecipeId: loadRecipeId,
       roundsFired: roundsFired,
@@ -164,7 +168,6 @@ extension RangeSessionCompanionExtension on domain_session.RangeSession {
     return RangeSessionsCompanion(
       sessionId: Value(id),
       date: Value(date),
-      location: Value(location),
       firearmId: Value(firearmId),
       loadRecipeId: Value(loadRecipeId),
       roundsFired: Value(roundsFired),

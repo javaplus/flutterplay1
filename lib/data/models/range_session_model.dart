@@ -5,11 +5,10 @@ import 'package:drift/drift.dart';
 class RangeSessions extends Table {
   TextColumn get sessionId => text()();
   DateTimeColumn get date => dateTime()();
-  TextColumn get location => text()();
   TextColumn get firearmId => text()(); // Foreign key to Firearms
   TextColumn get loadRecipeId => text()(); // Foreign key to LoadRecipes
   IntColumn get roundsFired => integer()();
-  TextColumn get weather => text()();
+  TextColumn get weather => text().nullable()();
   RealColumn get avgVelocity => real().nullable()();
   RealColumn get standardDeviation => real().nullable()();
   RealColumn get extremeSpread => real().nullable()();

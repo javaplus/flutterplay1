@@ -30,7 +30,7 @@ class RangeSessionCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header row with date and location
+              // Header row with date
               Row(
                 children: [
                   Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
@@ -39,16 +39,6 @@ class RangeSessionCard extends StatelessWidget {
                     _formatDate(session.date),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Flexible(
-                    child: Text(
-                      session.location,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],

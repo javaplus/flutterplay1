@@ -24,7 +24,4 @@ abstract class RangeSessionRepository {
 
   /// Delete a range session by ID
   Future<void> deleteRangeSession(String id);
-
-  /// Search range sessions by location
-  Future<List<RangeSession>> searchRangeSessions(String query);
 }
