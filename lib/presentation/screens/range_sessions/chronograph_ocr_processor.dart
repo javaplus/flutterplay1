@@ -20,6 +20,7 @@ class ChronographOCRProcessor {
 
   ui.Rect? _roiRect; // Region of Interest
   bool _isProcessing = false;
+  int _frameCount = 0;
 
   Stream<double> get velocityStream => _velocityStreamController.stream;
   ui.Rect? get roiRect => _roiRect;
@@ -27,12 +28,22 @@ class ChronographOCRProcessor {
   /// Set the Region of Interest for OCR
   void setROI(ui.Rect rect) {
     _roiRect = rect;
+    if (kDebugMode) {
+      print(
+        'ROI set: ${rect.left}, ${rect.top}, ${rect.width}, ${rect.height}',
+      );
+    }
   }
 
   /// Process a camera image and extract velocity
   Future<void> processImage(CameraImage image) async {
     if (_isProcessing) return;
     _isProcessing = true;
+
+    _frameCount++;
+    if (kDebugMode && _frameCount % 30 == 0) {
+      print('📸 Processing frame $_frameCount...');
+    }
 
     try {
       // Check debounce delay
@@ -46,9 +57,18 @@ class ChronographOCRProcessor {
         }
       }
 
+      // Only process every 3rd frame to reduce load
+      if (_frameCount % 3 != 0) {
+        _isProcessing = false;
+        return;
+      }
+
       // Convert CameraImage to InputImage
       final inputImage = _convertCameraImage(image);
       if (inputImage == null) {
+        if (kDebugMode && _frameCount <= 3) {
+          print('⚠️ Failed to convert camera image to InputImage');
+        }
         _isProcessing = false;
         return;
       }
@@ -58,7 +78,7 @@ class ChronographOCRProcessor {
 
       // Debug output
       if (kDebugMode && recognizedText.text.isNotEmpty) {
-        print('OCR detected: ${recognizedText.text}');
+        print('OCR detected text: "${recognizedText.text}"');
       }
 
       // Extract velocity from text
@@ -66,13 +86,16 @@ class ChronographOCRProcessor {
 
       if (velocity != null) {
         if (kDebugMode) {
-          print('Velocity extracted: $velocity fps');
+          print('✓ Velocity extracted: $velocity fps');
         }
         _addDetection(velocity);
+      } else if (kDebugMode && recognizedText.text.isNotEmpty) {
+        print('✗ No valid velocity found in text: "${recognizedText.text}"');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
-        print('OCR processing error: $e');
+        print('❌ OCR processing error: $e');
+        print('Stack trace: $stackTrace');
       }
     } finally {
       _isProcessing = false;
@@ -143,12 +166,12 @@ class ChronographOCRProcessor {
 
   /// Extract velocity from OCR text
   double? _extractVelocity(String text) {
-    // Remove whitespace and look for 3-4 digit numbers
+    // Remove whitespace but keep periods for decimals
     final cleaned = text.replaceAll(RegExp(r'\s+'), '');
 
-    // Look for velocity patterns (typically 3-4 digits)
-    // Also support lower velocities starting from 100 fps
-    final velocityPattern = RegExp(r'(\d{3,4})');
+    // Look for velocity patterns with optional decimal
+    // Matches: 344.2, 2333.5, 1234, 567.8, etc.
+    final velocityPattern = RegExp(r'(\d{3,4}(?:\.\d)?)');
     final matches = velocityPattern.allMatches(cleaned);
 
     for (final match in matches) {
@@ -168,33 +191,41 @@ class ChronographOCRProcessor {
   /// Convert CameraImage to InputImage for ML Kit
   InputImage? _convertCameraImage(CameraImage image) {
     try {
-      final allBytes = BytesBuilder();
-      for (final Plane plane in image.planes) {
-        allBytes.add(plane.bytes);
+      // Get image rotation based on device orientation
+      const InputImageRotation imageRotation = InputImageRotation.rotation0deg;
+
+      // Get image format
+      final InputImageFormat? inputImageFormat =
+          InputImageFormatValue.fromRawValue(image.format.raw);
+
+      if (inputImageFormat == null) {
+        if (kDebugMode) {
+          print('⚠️ Unsupported image format: ${image.format.raw}');
+        }
+        return null;
       }
-      final bytes = allBytes.toBytes();
 
-      final imageSize = ui.Size(
-        image.width.toDouble(),
-        image.height.toDouble(),
-      );
+      // For YUV420 format, we need to concatenate all plane bytes
+      final WriteBuffer allBytes = WriteBuffer();
+      for (final Plane plane in image.planes) {
+        allBytes.putUint8List(plane.bytes);
+      }
+      final bytes = allBytes.done().buffer.asUint8List();
 
-      final InputImageRotation imageRotation = InputImageRotation.rotation0deg;
-
-      final InputImageFormat inputImageFormat =
-          InputImageFormatValue.fromRawValue(image.format.raw) ??
-          InputImageFormat.nv21;
-
+      // Create metadata - use the first plane's bytesPerRow
       final inputImageMetadata = InputImageMetadata(
-        size: imageSize,
+        size: ui.Size(image.width.toDouble(), image.height.toDouble()),
         rotation: imageRotation,
         format: inputImageFormat,
         bytesPerRow: image.planes.first.bytesPerRow,
       );
 
       return InputImage.fromBytes(bytes: bytes, metadata: inputImageMetadata);
-    } catch (e) {
-      // Silently handle conversion errors
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        print('⚠️ Image conversion error: $e');
+        print('Stack trace: $stackTrace');
+      }
       return null;
     }
   }

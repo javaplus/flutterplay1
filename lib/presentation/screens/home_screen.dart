@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../providers/firearm_provider.dart';
 import '../providers/load_recipe_provider.dart';
 import '../providers/range_session_provider.dart';
@@ -8,18 +9,60 @@ import 'load_recipes/load_recipes_list_screen.dart';
 import 'range_sessions/range_sessions_list_screen.dart';
 
 /// Main home screen with navigation to different sections
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _version = 'v${packageInfo.version}';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final firearmsAsync = ref.watch(firearmsListProvider);
     final loadRecipesAsync = ref.watch(loadRecipesListProvider);
     final rangeSessionsAsync = ref.watch(rangeSessionsListProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reloading Companion'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Reloading Companion'),
+            if (_version.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.deepOrange.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _version,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
         elevation: 2,
         centerTitle: true,
       ),

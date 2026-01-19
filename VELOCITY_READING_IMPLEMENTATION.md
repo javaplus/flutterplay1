@@ -287,3 +287,94 @@ Real-time list of captured velocities with timestamps
 Live statistics: Average Velocity, Standard Deviation, Extreme Spread
 Delete button for each velocity if needed
 The feature uses OCR with frame differencing and debouncing to automatically detect when your chronograph display changes, requiring 3 out of 5 frames to match for reliability.
+
+
+Summary of Changes
+I've added extensive debugging and version tracking to help diagnose the OCR issue:
+
+1. Version Display Added
+App Version: 1.1.0+2
+
+Updated pubspec.yaml to version 1.1.0+2
+Added package_info_plus dependency
+Updated home_screen.dart to display version in app bar
+You'll now see "v1.1.0" badge next to the app title on the home screen
+2. Comprehensive Debug Logging Added
+What the debug output will show:
+
+When you start recording, you'll see in the console (via flutter run):
+
+🎬 Starting velocity recording...
+ROI set: 100.0, 200.0, 300.0, 150.0
+✅ Recording started. Image stream active.
+📸 Processing frame 30...
+OCR detected: "344.2"
+✓ Velocity extracted: 344.2 fps
+Recent detections buffer: [344.2] (1/5)
+...
+✓ Velocity CONFIRMED: 344.2 fps
+📥 Received velocity from stream: 344.2 fps
+
+
+Added debug points:
+
+ROI calibration - Shows ROI dimensions when set
+Recording start - Confirms recording began
+Frame processing - Every 30th frame logged
+Image conversion - Alerts if conversion fails
+OCR detection - Shows raw text detected
+Velocity extraction - Shows when velocity parsed successfully
+Detection buffer - Shows confirmation progress
+Stream delivery - Confirms velocity sent to UI
+3. Enhanced OCR Pattern
+The regex now properly matches decimal numbers:
+
+Pattern: r'(\d{3,4}(?:\.\d)?)'
+Matches: 344.2, 2333.5, 1234, 567.8
+What to Check:
+When you run the app with flutter run, watch the console output to see:
+
+Is recording starting? - Look for "🎬 Starting velocity recording..."
+Is the camera streaming? - Look for "📸 Processing frame..."
+Is OCR detecting text? - Look for "OCR detected: ..."
+Is velocity being extracted? - Look for "✓ Velocity extracted: ..."
+Is confirmation working? - Look for "Recent detections buffer: ..."
+If you don't see ANY output, it could mean:
+
+Camera permissions issue
+Image stream not starting
+OCR service not initialized
+The debug output will tell us exactly where the process is failing. Please run the app with flutter run and share what you see in the console when you try to record velocities!
+
+
+
+Fixed Image Format Conversion Issue
+Version updated to: 1.1.1+3
+
+Problem:
+The app was getting IllegalArgumentException errors when trying to convert camera images for ML Kit OCR. The issue was in how we were building the byte array and metadata.
+
+Solution:
+Updated the _convertCameraImage() method to:
+
+Use proper WriteBuffer - Changed from BytesBuilder to WriteBuffer which is the correct way to concatenate plane bytes
+Handle unsupported formats - Added check to detect and log unsupported image formats
+Improved error logging - Now shows specific conversion errors in debug mode
+Key Changes:
+Before:
+
+final allBytes = BytesBuilder();
+for (final Plane plane in image.planes) {
+  allBytes.add(plane.bytes);
+}
+final bytes = allBytes.toBytes();
+
+After:
+
+final WriteBuffer allBytes = WriteBuffer();
+for (final Plane plane in image.planes) {
+  allBytes.putUint8List(plane.bytes);
+}
+final bytes = allBytes.done().buffer.asUint8List();
+
+The OCR processing should now work without the IllegalArgumentException errors. Try the app again and you should see successful OCR detection in the console

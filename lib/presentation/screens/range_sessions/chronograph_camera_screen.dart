@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
@@ -55,9 +56,9 @@ class _ChronographCameraScreenState
       // Use back camera (typically index 0)
       _cameraController = CameraController(
         _cameras![0],
-        ResolutionPreset.high,
+        ResolutionPreset.medium, // Use medium for better performance
         enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.yuv420,
+        imageFormatGroup: ImageFormatGroup.nv21, // Changed from yuv420
       );
 
       await _cameraController!.initialize();
@@ -67,7 +68,15 @@ class _ChronographCameraScreenState
           _isInitialized = true;
         });
       }
-    } catch (e) {
+
+      if (kDebugMode) {
+        print('✅ Camera initialized successfully');
+      }
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        print('❌ Camera initialization error: $e');
+        print('Stack trace: $stackTrace');
+      }
       _showError('Error initializing camera: $e');
     }
   }
@@ -121,6 +130,12 @@ class _ChronographCameraScreenState
       return;
     }
 
+    if (kDebugMode) {
+      print('🎬 Starting velocity recording...');
+      print('Camera initialized: ${_cameraController?.value.isInitialized}');
+      print('ROI: $_roiRect');
+    }
+
     setState(() {
       _isRecording = true;
       _capturedVelocities.clear();
@@ -130,23 +145,61 @@ class _ChronographCameraScreenState
     _ocrProcessor!.setROI(_roiRect!);
 
     // Listen to velocity stream
-    _velocitySubscription = _ocrProcessor!.velocityStream.listen((velocity) {
-      setState(() {
-        _capturedVelocities.add(velocity);
-      });
+    _velocitySubscription = _ocrProcessor!.velocityStream.listen(
+      (velocity) {
+        if (kDebugMode) {
+          print('📥 Received velocity from stream: $velocity fps');
+        }
+        setState(() {
+          _capturedVelocities.add(velocity);
+        });
 
-      _saveVelocityToDatabase(velocity);
+        _saveVelocityToDatabase(velocity);
 
-      // Haptic feedback
-      if (mounted) {
-        HapticFeedback.mediumImpact();
-      }
-    });
+        // Haptic feedback
+        if (mounted) {
+          HapticFeedback.mediumImpact();
+        }
+      },
+      onError: (error) {
+        if (kDebugMode) {
+          print('❌ Velocity stream error: $error');
+        }
+        _showError('Stream error: $error');
+      },
+    );
 
     // Start image stream processing
-    _cameraController?.startImageStream((image) async {
-      await _ocrProcessor?.processImage(image);
-    });
+    try {
+      _cameraController
+          ?.startImageStream((image) async {
+            try {
+              await _ocrProcessor?.processImage(image);
+            } catch (e) {
+              if (kDebugMode) {
+                print('❌ Error processing image: $e');
+              }
+            }
+          })
+          .then((_) {
+            if (kDebugMode) {
+              print('✅ Image stream started successfully');
+            }
+          })
+          .catchError((error) {
+            if (kDebugMode) {
+              print('❌ Failed to start image stream: $error');
+            }
+            _showError('Failed to start recording: $error');
+            _stopRecording();
+          });
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Exception starting image stream: $e');
+      }
+      _showError('Failed to start recording: $e');
+      _stopRecording();
+    }
   }
 
   void _stopRecording() async {
