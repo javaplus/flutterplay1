@@ -39,9 +39,10 @@ dependencies:
   flutter_riverpod: ^2.5.1
   
   # Local Database
-  isar: ^3.1.0+1
-  isar_flutter_libs: ^3.1.0+1
+  drift: ^2.20.3
+  sqlite3_flutter_libs: ^0.5.24
   path_provider: ^2.1.5
+  path: ^1.9.0
   
   # Image Handling
   image_picker: ^1.1.2
@@ -60,8 +61,8 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   
-  # Isar code generation
-  isar_generator: ^3.1.0+1
+  # Drift code generation
+  drift_dev: ^2.20.3
   build_runner: ^2.4.13
 
 # For information on the generic Dart part of this file, see the

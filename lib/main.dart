@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'data/models/app_database.dart';
 import 'presentation/providers/firearm_provider.dart';
 import 'presentation/screens/firearms/firearms_list_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Isar database
-  final isar = await initializeIsar();
+  // Initialize Drift database
+  final database = await createDatabase();
 
   runApp(
     ProviderScope(
       overrides: [
-        // Override the isarProvider with the initialized instance
-        isarProvider.overrideWithValue(isar),
+        // Override the databaseProvider with the initialized instance
+        databaseProvider.overrideWithValue(database),
       ],
       child: const MyApp(),
     ),

@@ -1,21 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:isar/isar.dart';
-import 'package:path_provider/path_provider.dart';
-import '../../data/models/firearm_model.dart';
+import '../../data/models/app_database.dart';
 import '../../data/datasources/firearm_local_datasource.dart';
 import '../../data/repositories/firearm_repository_impl.dart';
 import '../../domain/repositories/firearm_repository.dart';
 import '../../domain/entities/firearm.dart';
 
-/// Provider for Isar database instance
-final isarProvider = Provider<Isar>((ref) {
-  throw UnimplementedError('Isar must be initialized in main.dart');
+/// Provider for Drift database instance
+final databaseProvider = Provider<AppDatabase>((ref) {
+  throw UnimplementedError('Database must be initialized in main.dart');
 });
 
 /// Provider for Firearm local data source
 final firearmLocalDataSourceProvider = Provider<FirearmLocalDataSource>((ref) {
-  final isar = ref.watch(isarProvider);
-  return FirearmLocalDataSource(isar);
+  final database = ref.watch(databaseProvider);
+  return FirearmLocalDataSource(database);
 });
 
 /// Provider for Firearm repository
@@ -88,9 +86,3 @@ final firearmNotifierProvider =
       final repository = ref.watch(firearmRepositoryProvider);
       return FirearmNotifier(repository);
     });
-
-/// Helper function to initialize Isar database
-Future<Isar> initializeIsar() async {
-  final dir = await getApplicationDocumentsDirectory();
-  return await Isar.open([FirearmModelSchema], directory: dir.path);
-}
