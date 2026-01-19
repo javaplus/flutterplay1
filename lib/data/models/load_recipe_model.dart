@@ -12,10 +12,10 @@ class LoadRecipes extends Table {
   RealColumn get powderCharge => real()();
   TextColumn get primerType => text()();
   TextColumn get brassType => text()();
-  TextColumn get brassPrep => text()();
+  TextColumn get brassPrep => text().nullable()();
   RealColumn get coalLength => real()();
-  RealColumn get seatingDepth => real()();
-  TextColumn get crimp => text()();
+  RealColumn get seatingDepth => real().nullable()();
+  TextColumn get crimp => text().nullable()();
   TextColumn get pressureSigns => text()(); // Stored as JSON array
   TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
