@@ -1,0 +1,268 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/firearm_provider.dart';
+import '../providers/load_recipe_provider.dart';
+import 'firearms/firearms_list_screen.dart';
+import 'load_recipes/load_recipes_list_screen.dart';
+
+/// Main home screen with navigation to different sections
+class HomeScreen extends ConsumerWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final firearmsAsync = ref.watch(firearmsListProvider);
+    final loadRecipesAsync = ref.watch(loadRecipesListProvider);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Reloading Companion'),
+        elevation: 2,
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Welcome section
+              Text(
+                'Welcome!',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Manage your firearms and load recipes',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 32),
+
+              // Firearms Card
+              _buildSectionCard(
+                context: context,
+                title: 'Firearms',
+                description: 'Manage your firearm profiles',
+                icon: Icons.gps_fixed,
+                iconColor: Colors.blue,
+                count: firearmsAsync.maybeWhen(
+                  data: (firearms) => firearms.length,
+                  orElse: () => null,
+                ),
+                onTap: () => _navigateToFirearms(context),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Load Recipes Card
+              _buildSectionCard(
+                context: context,
+                title: 'Load Recipes',
+                description: 'Manage your reloading data',
+                icon: Icons.science,
+                iconColor: Colors.orange,
+                count: loadRecipesAsync.maybeWhen(
+                  data: (recipes) => recipes.length,
+                  orElse: () => null,
+                ),
+                onTap: () => _navigateToLoadRecipes(context),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Coming Soon Cards (placeholder for future features)
+              _buildComingSoonCard(
+                context: context,
+                title: 'Range Sessions',
+                description: 'Track your shooting sessions',
+                icon: Icons.my_location,
+              ),
+
+              const SizedBox(height: 16),
+
+              _buildComingSoonCard(
+                context: context,
+                title: 'Component Inventory',
+                description: 'Track brass, bullets, powder, and primers',
+                icon: Icons.inventory_2,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required BuildContext context,
+    required String title,
+    required String description,
+    required IconData icon,
+    required Color iconColor,
+    int? count,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              // Icon
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, size: 32, color: iconColor),
+              ),
+              const SizedBox(width: 16),
+
+              // Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        if (count != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: iconColor,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              count.toString(),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Arrow
+              Icon(Icons.chevron_right, color: Colors.grey[400]),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildComingSoonCard({
+    required BuildContext context,
+    required String title,
+    required String description,
+    required IconData icon,
+  }) {
+    return Card(
+      child: Opacity(
+        opacity: 0.5,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              // Icon
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, size: 32, color: Colors.grey[400]),
+              ),
+              const SizedBox(width: 16),
+
+              // Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Coming Soon',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Colors.grey[700],
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToFirearms(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const FirearmsListScreen()));
+  }
+
+  void _navigateToLoadRecipes(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const LoadRecipesListScreen()),
+    );
+  }
+}

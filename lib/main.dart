@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'data/models/app_database.dart';
 import 'presentation/providers/firearm_provider.dart';
-import 'presentation/screens/firearms/firearms_list_screen.dart';
+import 'presentation/screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,7 +46,7 @@ class MyApp extends StatelessWidget {
           filled: true,
         ),
       ),
-      home: const FirearmsListScreen(),
+      home: const HomeScreen(),
     );
   }
 }
