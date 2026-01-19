@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(QueryExecutor e) : super(e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -40,6 +40,11 @@ class AppDatabase extends _$AppDatabase {
         // Migration from version 3 to 4: Remove location column and make weather nullable
         await m.deleteTable('range_sessions');
         await m.createTable(rangeSessions);
+      }
+      if (from < 5) {
+        // Migration from version 4 to 5: Make brassPrep, seatingDepth, and crimp nullable in LoadRecipes
+        await m.deleteTable('load_recipes');
+        await m.createTable(loadRecipes);
       }
     },
   );

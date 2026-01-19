@@ -9,10 +9,10 @@ class LoadRecipe {
   final double powderCharge; // In grains
   final String primerType;
   final String brassType; // Brand/type of brass
-  final String brassPrep; // Prep notes (annealed, resized, etc.)
+  final String? brassPrep; // Prep notes (annealed, resized, etc.) - optional
   final double coalLength; // Cartridge Overall Length in inches
-  final double seatingDepth; // In inches
-  final String crimp; // Text field for crimp info
+  final double? seatingDepth; // In inches - optional
+  final String? crimp; // Text field for crimp info - optional
   final List<String> pressureSigns; // Multiple pressure sign indicators
   final String? notes;
   final DateTime createdAt;
@@ -27,10 +27,10 @@ class LoadRecipe {
     required this.powderCharge,
     required this.primerType,
     required this.brassType,
-    required this.brassPrep,
+    this.brassPrep,
     required this.coalLength,
-    required this.seatingDepth,
-    required this.crimp,
+    this.seatingDepth,
+    this.crimp,
     this.pressureSigns = const [],
     this.notes,
     required this.createdAt,

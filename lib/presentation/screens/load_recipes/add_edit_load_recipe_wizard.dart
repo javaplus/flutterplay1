@@ -55,10 +55,10 @@ class _AddEditLoadRecipeWizardState
       _powderChargeController.text = recipe.powderCharge.toString();
       _primerTypeController.text = recipe.primerType;
       _brassTypeController.text = recipe.brassType;
-      _brassPrepController.text = recipe.brassPrep;
+      _brassPrepController.text = recipe.brassPrep ?? '';
       _coalLengthController.text = recipe.coalLength.toString();
-      _seatingDepthController.text = recipe.seatingDepth.toString();
-      _crimpController.text = recipe.crimp;
+      _seatingDepthController.text = recipe.seatingDepth?.toString() ?? '';
+      _crimpController.text = recipe.crimp ?? '';
       _notesController.text = recipe.notes ?? '';
       _selectedPressureSigns.addAll(recipe.pressureSigns);
     }
@@ -381,18 +381,12 @@ class _AddEditLoadRecipeWizardState
           TextFormField(
             controller: _brassPrepController,
             decoration: const InputDecoration(
-              labelText: 'Brass Prep *',
+              labelText: 'Brass Prep (Optional)',
               hintText: 'e.g., Annealed, Full length sized',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.build),
             ),
             maxLines: 2,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter brass prep details';
-              }
-              return null;
-            },
           ),
           const SizedBox(height: 16),
 
@@ -427,7 +421,7 @@ class _AddEditLoadRecipeWizardState
           TextFormField(
             controller: _seatingDepthController,
             decoration: const InputDecoration(
-              labelText: 'Seating Depth *',
+              labelText: 'Seating Depth (Optional)',
               hintText: 'e.g., 0.020',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.height),
@@ -438,12 +432,11 @@ class _AddEditLoadRecipeWizardState
               FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,4}')),
             ],
             validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter seating depth';
-              }
-              final depth = double.tryParse(value);
-              if (depth == null || depth < 0) {
-                return 'Please enter a valid depth';
+              if (value != null && value.isNotEmpty) {
+                final depth = double.tryParse(value);
+                if (depth == null || depth < 0) {
+                  return 'Please enter a valid depth';
+                }
               }
               return null;
             },
@@ -454,17 +447,11 @@ class _AddEditLoadRecipeWizardState
           TextFormField(
             controller: _crimpController,
             decoration: const InputDecoration(
-              labelText: 'Crimp *',
+              labelText: 'Crimp (Optional)',
               hintText: 'e.g., None, Light roll crimp, 0.003"',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.compress),
             ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter crimp info';
-              }
-              return null;
-            },
           ),
         ],
       ),
@@ -648,10 +635,16 @@ class _AddEditLoadRecipeWizardState
       powderCharge: double.parse(_powderChargeController.text),
       primerType: _primerTypeController.text.trim(),
       brassType: _brassTypeController.text.trim(),
-      brassPrep: _brassPrepController.text.trim(),
+      brassPrep: _brassPrepController.text.trim().isEmpty
+          ? null
+          : _brassPrepController.text.trim(),
       coalLength: double.parse(_coalLengthController.text),
-      seatingDepth: double.parse(_seatingDepthController.text),
-      crimp: _crimpController.text.trim(),
+      seatingDepth: _seatingDepthController.text.trim().isEmpty
+          ? null
+          : double.tryParse(_seatingDepthController.text),
+      crimp: _crimpController.text.trim().isEmpty
+          ? null
+          : _crimpController.text.trim(),
       pressureSigns: _selectedPressureSigns.toList(),
       notes: _notesController.text.trim().isEmpty
           ? null

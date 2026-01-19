@@ -108,25 +108,36 @@ class LoadRecipeDetailScreen extends ConsumerWidget {
             // Brass Information
             _buildSection(context, 'Brass', [
               _buildInfoRow(context, 'Type', loadRecipe.brassType),
-              _buildInfoRow(context, 'Prep', loadRecipe.brassPrep),
+              if (loadRecipe.brassPrep != null &&
+                  loadRecipe.brassPrep!.isNotEmpty)
+                _buildInfoRow(context, 'Prep', loadRecipe.brassPrep!),
             ]),
             const SizedBox(height: 24),
 
             // Cartridge Dimensions
             _buildSection(context, 'Cartridge Dimensions', [
               _buildInfoRow(context, 'COAL', '${loadRecipe.coalLength}"'),
-              _buildInfoRow(
-                context,
-                'Seating Depth',
-                '${loadRecipe.seatingDepth}"',
-              ),
+              if (loadRecipe.seatingDepth != null)
+                _buildInfoRow(
+                  context,
+                  'Seating Depth',
+                  '${loadRecipe.seatingDepth}"',
+                ),
             ]),
             const SizedBox(height: 24),
 
             // Crimp
-            _buildSection(context, 'Crimp', [
-              _buildInfoRow(context, '', loadRecipe.crimp, singleValue: true),
-            ]),
+            if (loadRecipe.crimp != null && loadRecipe.crimp!.isNotEmpty) ...[
+              _buildSection(context, 'Crimp', [
+                _buildInfoRow(
+                  context,
+                  '',
+                  loadRecipe.crimp!,
+                  singleValue: true,
+                ),
+              ]),
+              const SizedBox(height: 24),
+            ],
 
             // Pressure Signs
             if (loadRecipe.pressureSigns.isNotEmpty) ...[
