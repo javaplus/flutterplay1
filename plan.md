@@ -40,7 +40,8 @@ Reloaders care deeply about lot numbers and consistency.
 ### **3. Load Recipe Data**
 This is the heart of the app.
 - Cartridge (e.g., .308 Win)
-- Bullet weight/type
+- Bullet weight (weight is numeric)
+- Bullet Type (e.g. FMJ)
 - Powder type
 - Powder charge (grains)
 - Primer type
