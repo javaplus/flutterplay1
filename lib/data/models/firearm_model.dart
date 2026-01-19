@@ -1,73 +1,22 @@
-import 'package:isar/isar.dart';
-import '../../domain/entities/firearm.dart';
+import 'package:drift/drift.dart';
 
-part 'firearm_model.g.dart';
+/// Drift table definition for Firearm
+@DataClassName('FirearmData')
+class Firearms extends Table {
+  TextColumn get firearmId => text()();
+  TextColumn get name => text()();
+  TextColumn get make => text()();
+  TextColumn get model => text()();
+  TextColumn get caliber => text()();
+  RealColumn get barrelLength => real()();
+  TextColumn get barrelTwistRate => text()();
+  IntColumn get roundCount => integer().withDefault(const Constant(0))();
+  TextColumn get opticInfo => text().nullable()();
+  TextColumn get notes => text().nullable()();
+  TextColumn get photoPath => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
 
-/// Isar database model for Firearm
-/// This is the data layer representation that maps to the database
-@collection
-class FirearmModel {
-  Id id = Isar.autoIncrement; // Auto-increment ID for Isar
-
-  @Index()
-  late String firearmId; // Our custom UUID
-
-  @Index()
-  late String name;
-
-  late String make;
-  late String model;
-
-  @Index()
-  late String caliber;
-
-  late double barrelLength;
-  late String barrelTwistRate;
-  late int roundCount;
-
-  String? opticInfo;
-  String? notes;
-  String? photoPath;
-
-  @Index()
-  late DateTime createdAt;
-
-  late DateTime updatedAt;
-
-  /// Convert to domain entity
-  Firearm toEntity() {
-    return Firearm(
-      id: firearmId,
-      name: name,
-      make: make,
-      model: model,
-      caliber: caliber,
-      barrelLength: barrelLength,
-      barrelTwistRate: barrelTwistRate,
-      roundCount: roundCount,
-      opticInfo: opticInfo,
-      notes: notes,
-      photoPath: photoPath,
-      createdAt: createdAt,
-      updatedAt: updatedAt,
-    );
-  }
-
-  /// Create from domain entity
-  static FirearmModel fromEntity(Firearm firearm) {
-    return FirearmModel()
-      ..firearmId = firearm.id
-      ..name = firearm.name
-      ..make = firearm.make
-      ..model = firearm.model
-      ..caliber = firearm.caliber
-      ..barrelLength = firearm.barrelLength
-      ..barrelTwistRate = firearm.barrelTwistRate
-      ..roundCount = firearm.roundCount
-      ..opticInfo = firearm.opticInfo
-      ..notes = firearm.notes
-      ..photoPath = firearm.photoPath
-      ..createdAt = firearm.createdAt
-      ..updatedAt = firearm.updatedAt;
-  }
+  @override
+  Set<Column> get primaryKey => {firearmId};
 }
