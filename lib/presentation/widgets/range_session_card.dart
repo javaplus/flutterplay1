@@ -89,14 +89,6 @@ class RangeSessionCard extends StatelessWidget {
                     Icons.whatshot,
                     '${session.roundsFired} rounds',
                   ),
-                  if (session.avgVelocity != null) ...[
-                    const SizedBox(width: 8),
-                    _buildStatChip(
-                      context,
-                      Icons.speed,
-                      '${session.avgVelocity!.toStringAsFixed(0)} fps',
-                    ),
-                  ],
                 ],
               ),
             ],

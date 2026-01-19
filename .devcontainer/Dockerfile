@@ -7,10 +7,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     curl git unzip xz-utils libglu1-mesa openjdk-17-jdk \
     wget python3 adb usbutils \
-    cmake ninja-build \
-    clang \
-    pkg-config \
-    libgtk-3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up Flutter SDK
@@ -28,7 +24,8 @@ RUN mkdir -p $ANDROID_SDK_ROOT/cmdline-tools && \
 
 ENV PATH="$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools"
 
-# Accept Android Licenses
-RUN yes | sdkmanager --licenses
+# Accept Android Licenses and install platform-tools
+RUN yes | sdkmanager --licenses && \
+    sdkmanager "platform-tools"
 
 WORKDIR /workspace

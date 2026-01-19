@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/range_session_local_datasource.dart';
 import '../../data/datasources/target_local_datasource.dart';
+import '../../data/datasources/shot_velocity_local_datasource.dart';
 import '../../data/repositories/range_session_repository_impl.dart';
 import '../../data/repositories/target_repository_impl.dart';
+import '../../data/repositories/shot_velocity_repository_impl.dart';
 import '../../domain/repositories/range_session_repository.dart';
 import '../../domain/repositories/target_repository.dart';
+import '../../domain/repositories/shot_velocity_repository.dart';
 import '../../domain/entities/range_session.dart';
 import '../../domain/entities/target.dart';
 import 'firearm_provider.dart'; // For databaseProvider
@@ -22,6 +25,13 @@ final targetLocalDataSourceProvider = Provider<TargetLocalDataSource>((ref) {
   return TargetLocalDataSource(database);
 });
 
+/// Provider for ShotVelocity local data source
+final shotVelocityLocalDataSourceProvider =
+    Provider<ShotVelocityLocalDataSource>((ref) {
+      final database = ref.watch(databaseProvider);
+      return ShotVelocityLocalDataSource(database);
+    });
+
 /// Provider for RangeSession repository
 final rangeSessionRepositoryProvider = Provider<RangeSessionRepository>((ref) {
   final localDataSource = ref.watch(rangeSessionLocalDataSourceProvider);
@@ -32,6 +42,12 @@ final rangeSessionRepositoryProvider = Provider<RangeSessionRepository>((ref) {
 final targetRepositoryProvider = Provider<TargetRepository>((ref) {
   final localDataSource = ref.watch(targetLocalDataSourceProvider);
   return TargetRepositoryImpl(localDataSource);
+});
+
+/// Provider for ShotVelocity repository
+final shotVelocityRepositoryProvider = Provider<ShotVelocityRepository>((ref) {
+  final localDataSource = ref.watch(shotVelocityLocalDataSourceProvider);
+  return ShotVelocityRepositoryImpl(localDataSource);
 });
 
 /// Provider for the list of all range sessions
@@ -123,8 +139,10 @@ class RangeSessionNotifier extends StateNotifier<AsyncValue<void>> {
 /// Notifier for managing target CRUD operations
 class TargetNotifier extends StateNotifier<AsyncValue<void>> {
   final TargetRepository repository;
+  final ShotVelocityRepository shotVelocityRepository;
 
-  TargetNotifier(this.repository) : super(const AsyncValue.data(null));
+  TargetNotifier(this.repository, this.shotVelocityRepository)
+    : super(const AsyncValue.data(null));
 
   /// Add a new target
   Future<void> addTarget(Target target) async {
@@ -146,6 +164,9 @@ class TargetNotifier extends StateNotifier<AsyncValue<void>> {
   Future<void> deleteTarget(String id) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
+      // First delete all associated shot velocities
+      await shotVelocityRepository.deleteShotVelocitiesByTargetId(id);
+      // Then delete the target
       await repository.deleteTarget(id);
     });
   }
@@ -163,5 +184,6 @@ final rangeSessionNotifierProvider =
 final targetNotifierProvider =
     StateNotifierProvider<TargetNotifier, AsyncValue<void>>((ref) {
       final repository = ref.watch(targetRepositoryProvider);
-      return TargetNotifier(repository);
+      final shotVelocityRepository = ref.watch(shotVelocityRepositoryProvider);
+      return TargetNotifier(repository, shotVelocityRepository);
     });

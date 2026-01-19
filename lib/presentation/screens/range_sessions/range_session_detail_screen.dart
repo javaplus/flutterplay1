@@ -148,33 +148,6 @@ class RangeSessionDetailScreen extends ConsumerWidget {
               error: (_, __) => const SizedBox.shrink(),
             ),
 
-            // Chronograph Data
-            if (session.avgVelocity != null ||
-                session.standardDeviation != null ||
-                session.extremeSpread != null) ...[
-              _buildSection(context, 'Chronograph Data', [
-                if (session.avgVelocity != null)
-                  _buildInfoRow(
-                    context,
-                    'Avg Velocity',
-                    '${session.avgVelocity!.toStringAsFixed(1)} fps',
-                  ),
-                if (session.standardDeviation != null)
-                  _buildInfoRow(
-                    context,
-                    'Std Deviation (SD)',
-                    '${session.standardDeviation!.toStringAsFixed(2)} fps',
-                  ),
-                if (session.extremeSpread != null)
-                  _buildInfoRow(
-                    context,
-                    'Extreme Spread (ES)',
-                    '${session.extremeSpread!.toStringAsFixed(1)} fps',
-                  ),
-              ]),
-              const SizedBox(height: 24),
-            ],
-
             // Targets
             targetsAsync.when(
               data: (targets) {

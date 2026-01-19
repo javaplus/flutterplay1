@@ -6,20 +6,24 @@ import 'dart:io';
 import 'firearm_model.dart';
 import 'load_recipe_model.dart';
 import 'range_session_model.dart';
+import 'shot_velocity_model.dart';
 import '../../domain/entities/firearm.dart' as domain;
 import '../../domain/entities/load_recipe.dart' as domain_load;
 import '../../domain/entities/range_session.dart' as domain_session;
 import '../../domain/entities/target.dart' as domain_target;
+import '../../domain/entities/shot_velocity.dart' as domain_shot;
 
 part 'app_database.g.dart';
 
 /// Main database class for the application
-@DriftDatabase(tables: [Firearms, LoadRecipes, RangeSessions, Targets])
+@DriftDatabase(
+  tables: [Firearms, LoadRecipes, RangeSessions, Targets, ShotVelocities],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(QueryExecutor e) : super(e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -45,6 +49,14 @@ class AppDatabase extends _$AppDatabase {
         // Migration from version 4 to 5: Make brassPrep, seatingDepth, and crimp nullable in LoadRecipes
         await m.deleteTable('load_recipes');
         await m.createTable(loadRecipes);
+      }
+      if (from < 6) {
+        // Migration from version 5 to 6: Move velocity fields to Targets, add ShotVelocities table
+        await m.deleteTable('range_sessions');
+        await m.deleteTable('targets');
+        await m.createTable(rangeSessions);
+        await m.createTable(targets);
+        await m.createTable(shotVelocities);
       }
     },
   );
@@ -157,9 +169,6 @@ extension RangeSessionExtension on RangeSessionData {
       loadRecipeId: loadRecipeId,
       roundsFired: roundsFired,
       weather: weather,
-      avgVelocity: avgVelocity,
-      standardDeviation: standardDeviation,
-      extremeSpread: extremeSpread,
       notes: notes,
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -177,9 +186,6 @@ extension RangeSessionCompanionExtension on domain_session.RangeSession {
       loadRecipeId: Value(loadRecipeId),
       roundsFired: Value(roundsFired),
       weather: Value(weather),
-      avgVelocity: Value(avgVelocity),
-      standardDeviation: Value(standardDeviation),
-      extremeSpread: Value(extremeSpread),
       notes: Value(notes),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -199,6 +205,9 @@ extension TargetExtension on TargetData {
       groupSizeInches: groupSizeInches,
       groupSizeCm: groupSizeCm,
       groupSizeMoa: groupSizeMoa,
+      avgVelocity: avgVelocity,
+      standardDeviation: standardDeviation,
+      extremeSpread: extremeSpread,
       notes: notes,
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -218,7 +227,38 @@ extension TargetCompanionExtension on domain_target.Target {
       groupSizeInches: Value(groupSizeInches),
       groupSizeCm: Value(groupSizeCm),
       groupSizeMoa: Value(groupSizeMoa),
+      avgVelocity: Value(avgVelocity),
+      standardDeviation: Value(standardDeviation),
+      extremeSpread: Value(extremeSpread),
       notes: Value(notes),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+}
+
+/// Extension to convert ShotVelocity Drift data class to domain entity
+extension ShotVelocityExtension on ShotVelocityData {
+  domain_shot.ShotVelocity toEntity() {
+    return domain_shot.ShotVelocity(
+      id: shotId,
+      targetId: targetId,
+      velocity: velocity,
+      timestamp: timestamp,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
+}
+
+/// Extension to convert domain entity to ShotVelocity Drift companion
+extension ShotVelocityCompanionExtension on domain_shot.ShotVelocity {
+  ShotVelocitiesCompanion toCompanion() {
+    return ShotVelocitiesCompanion(
+      shotId: Value(id),
+      targetId: Value(targetId),
+      velocity: Value(velocity),
+      timestamp: Value(timestamp),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );

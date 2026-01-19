@@ -23,9 +23,6 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
   // Controllers
   final _roundsFiredController = TextEditingController();
   final _weatherController = TextEditingController();
-  final _avgVelocityController = TextEditingController();
-  final _sdController = TextEditingController();
-  final _esController = TextEditingController();
   final _notesController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
@@ -46,9 +43,6 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
       _selectedLoadRecipeId = session.loadRecipeId;
       _roundsFiredController.text = session.roundsFired.toString();
       _weatherController.text = session.weather ?? '';
-      _avgVelocityController.text = session.avgVelocity?.toString() ?? '';
-      _sdController.text = session.standardDeviation?.toString() ?? '';
-      _esController.text = session.extremeSpread?.toString() ?? '';
       _notesController.text = session.notes ?? '';
     }
   }
@@ -57,9 +51,6 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
   void dispose() {
     _roundsFiredController.dispose();
     _weatherController.dispose();
-    _avgVelocityController.dispose();
-    _sdController.dispose();
-    _esController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -217,54 +208,6 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
               ),
               const SizedBox(height: 24),
 
-              // Chronograph Data Section
-              Text(
-                'Chronograph Data (Optional)',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _avgVelocityController,
-                decoration: const InputDecoration(
-                  labelText: 'Average Velocity (fps)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.speed),
-                ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _sdController,
-                decoration: const InputDecoration(
-                  labelText: 'Standard Deviation (fps)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.show_chart),
-                ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _esController,
-                decoration: const InputDecoration(
-                  labelText: 'Extreme Spread (fps)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.straighten),
-                ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-              ),
-              const SizedBox(height: 24),
-
               // Notes
               TextFormField(
                 controller: _notesController,
@@ -332,15 +275,6 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
       weather: _weatherController.text.trim().isEmpty
           ? null
           : _weatherController.text.trim(),
-      avgVelocity: _avgVelocityController.text.isEmpty
-          ? null
-          : double.tryParse(_avgVelocityController.text),
-      standardDeviation: _sdController.text.isEmpty
-          ? null
-          : double.tryParse(_sdController.text),
-      extremeSpread: _esController.text.isEmpty
-          ? null
-          : double.tryParse(_esController.text),
       notes: _notesController.text.trim().isEmpty
           ? null
           : _notesController.text.trim(),

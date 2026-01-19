@@ -9,6 +9,11 @@ class Target {
   final double? groupSizeInches; // Manual entry - group size in inches
   final double? groupSizeCm; // Manual entry - group size in cm
   final double? groupSizeMoa; // Manual entry or calculated - group size in MOA
+  final double?
+  avgVelocity; // Average velocity in fps (calculated from shot velocities)
+  final double?
+  standardDeviation; // SD in fps (calculated from shot velocities)
+  final double? extremeSpread; // ES in fps (calculated from shot velocities)
   final String? notes; // Shooter notes (e.g., "pulled shot #3")
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -22,6 +27,9 @@ class Target {
     this.groupSizeInches,
     this.groupSizeCm,
     this.groupSizeMoa,
+    this.avgVelocity,
+    this.standardDeviation,
+    this.extremeSpread,
     this.notes,
     required this.createdAt,
     required this.updatedAt,
@@ -37,6 +45,9 @@ class Target {
     double? groupSizeInches,
     double? groupSizeCm,
     double? groupSizeMoa,
+    double? avgVelocity,
+    double? standardDeviation,
+    double? extremeSpread,
     String? notes,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -50,6 +61,9 @@ class Target {
       groupSizeInches: groupSizeInches ?? this.groupSizeInches,
       groupSizeCm: groupSizeCm ?? this.groupSizeCm,
       groupSizeMoa: groupSizeMoa ?? this.groupSizeMoa,
+      avgVelocity: avgVelocity ?? this.avgVelocity,
+      standardDeviation: standardDeviation ?? this.standardDeviation,
+      extremeSpread: extremeSpread ?? this.extremeSpread,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
