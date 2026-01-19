@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/firearm_provider.dart';
 import '../providers/load_recipe_provider.dart';
+import '../providers/range_session_provider.dart';
 import 'firearms/firearms_list_screen.dart';
 import 'load_recipes/load_recipes_list_screen.dart';
+import 'range_sessions/range_sessions_list_screen.dart';
 
 /// Main home screen with navigation to different sections
 class HomeScreen extends ConsumerWidget {
@@ -13,6 +15,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final firearmsAsync = ref.watch(firearmsListProvider);
     final loadRecipesAsync = ref.watch(loadRecipesListProvider);
+    final rangeSessionsAsync = ref.watch(rangeSessionsListProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -74,12 +77,18 @@ class HomeScreen extends ConsumerWidget {
 
               const SizedBox(height: 16),
 
-              // Coming Soon Cards (placeholder for future features)
-              _buildComingSoonCard(
+              // Range Sessions Card
+              _buildSectionCard(
                 context: context,
                 title: 'Range Sessions',
                 description: 'Track your shooting sessions',
                 icon: Icons.my_location,
+                iconColor: Colors.green,
+                count: rangeSessionsAsync.maybeWhen(
+                  data: (sessions) => sessions.length,
+                  orElse: () => null,
+                ),
+                onTap: () => _navigateToRangeSessions(context),
               ),
 
               const SizedBox(height: 16),
@@ -263,6 +272,12 @@ class HomeScreen extends ConsumerWidget {
   void _navigateToLoadRecipes(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (context) => const LoadRecipesListScreen()),
+    );
+  }
+
+  void _navigateToRangeSessions(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const RangeSessionsListScreen()),
     );
   }
 }

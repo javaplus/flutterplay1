@@ -5,18 +5,21 @@ import 'package:path/path.dart' as p;
 import 'dart:io';
 import 'firearm_model.dart';
 import 'load_recipe_model.dart';
+import 'range_session_model.dart';
 import '../../domain/entities/firearm.dart' as domain;
 import '../../domain/entities/load_recipe.dart' as domain_load;
+import '../../domain/entities/range_session.dart' as domain_session;
+import '../../domain/entities/target.dart' as domain_target;
 
 part 'app_database.g.dart';
 
 /// Main database class for the application
-@DriftDatabase(tables: [Firearms, LoadRecipes])
+@DriftDatabase(tables: [Firearms, LoadRecipes, RangeSessions, Targets])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(QueryExecutor e) : super(e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -27,6 +30,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 2) {
         // Migration from version 1 to 2: Add LoadRecipes table
         await m.createTable(loadRecipes);
+      }
+      if (from < 3) {
+        // Migration from version 2 to 3: Add RangeSessions and Targets tables
+        await m.createTable(rangeSessions);
+        await m.createTable(targets);
       }
     },
   );
@@ -122,6 +130,86 @@ extension LoadRecipeCompanionExtension on domain_load.LoadRecipe {
       seatingDepth: Value(seatingDepth),
       crimp: Value(crimp),
       pressureSigns: Value(const PressureSignsConverter().toSql(pressureSigns)),
+      notes: Value(notes),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+}
+
+/// Extension to convert RangeSession Drift data class to domain entity
+extension RangeSessionExtension on RangeSessionData {
+  domain_session.RangeSession toEntity() {
+    return domain_session.RangeSession(
+      id: sessionId,
+      date: date,
+      location: location,
+      firearmId: firearmId,
+      loadRecipeId: loadRecipeId,
+      roundsFired: roundsFired,
+      weather: weather,
+      avgVelocity: avgVelocity,
+      standardDeviation: standardDeviation,
+      extremeSpread: extremeSpread,
+      notes: notes,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
+}
+
+/// Extension to convert domain entity to RangeSession Drift companion
+extension RangeSessionCompanionExtension on domain_session.RangeSession {
+  RangeSessionsCompanion toCompanion() {
+    return RangeSessionsCompanion(
+      sessionId: Value(id),
+      date: Value(date),
+      location: Value(location),
+      firearmId: Value(firearmId),
+      loadRecipeId: Value(loadRecipeId),
+      roundsFired: Value(roundsFired),
+      weather: Value(weather),
+      avgVelocity: Value(avgVelocity),
+      standardDeviation: Value(standardDeviation),
+      extremeSpread: Value(extremeSpread),
+      notes: Value(notes),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+}
+
+/// Extension to convert Target Drift data class to domain entity
+extension TargetExtension on TargetData {
+  domain_target.Target toEntity() {
+    return domain_target.Target(
+      id: targetId,
+      rangeSessionId: rangeSessionId,
+      photoPath: photoPath,
+      distance: distance,
+      numberOfShots: numberOfShots,
+      groupSizeInches: groupSizeInches,
+      groupSizeCm: groupSizeCm,
+      groupSizeMoa: groupSizeMoa,
+      notes: notes,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
+}
+
+/// Extension to convert domain entity to Target Drift companion
+extension TargetCompanionExtension on domain_target.Target {
+  TargetsCompanion toCompanion() {
+    return TargetsCompanion(
+      targetId: Value(id),
+      rangeSessionId: Value(rangeSessionId),
+      photoPath: Value(photoPath),
+      distance: Value(distance),
+      numberOfShots: Value(numberOfShots),
+      groupSizeInches: Value(groupSizeInches),
+      groupSizeCm: Value(groupSizeCm),
+      groupSizeMoa: Value(groupSizeMoa),
       notes: Value(notes),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
