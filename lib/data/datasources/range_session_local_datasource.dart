@@ -70,16 +70,4 @@ class RangeSessionLocalDataSource {
       database.rangeSessions,
     )..where((t) => t.sessionId.equals(sessionId))).go();
   }
-
-  /// Search range sessions by location
-  Future<List<domain.RangeSession>> searchRangeSessions(String query) async {
-    final lowerQuery = query.toLowerCase();
-    final results = await database.select(database.rangeSessions).get();
-
-    final filtered = results.where((data) {
-      return data.location.toLowerCase().contains(lowerQuery);
-    }).toList();
-
-    return filtered.map((data) => data.toEntity()).toList();
-  }
 }

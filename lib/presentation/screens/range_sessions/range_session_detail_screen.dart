@@ -88,12 +88,12 @@ class RangeSessionDetailScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Date and Location
+            // Session Information
             _buildSection(context, 'Session Information', [
               _buildInfoRow(context, 'Date', dateFormat.format(session.date)),
-              _buildInfoRow(context, 'Location', session.location),
               _buildInfoRow(context, 'Rounds Fired', '${session.roundsFired}'),
-              _buildInfoRow(context, 'Weather', session.weather),
+              if (session.weather != null && session.weather!.isNotEmpty)
+                _buildInfoRow(context, 'Weather', session.weather!),
             ]),
             const SizedBox(height: 24),
 

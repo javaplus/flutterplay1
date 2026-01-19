@@ -18,32 +18,12 @@ class RangeSessionsListScreen extends ConsumerStatefulWidget {
 
 class _RangeSessionsListScreenState
     extends ConsumerState<RangeSessionsListScreen> {
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final sessionsAsync = _searchQuery.isEmpty
-        ? ref.watch(rangeSessionsListProvider)
-        : ref.watch(rangeSessionSearchProvider(_searchQuery));
+    final sessionsAsync = ref.watch(rangeSessionsListProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Range Sessions'),
-        elevation: 2,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: _showSearchDialog,
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Range Sessions'), elevation: 2),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(rangeSessionsListProvider);
@@ -127,73 +107,23 @@ class _RangeSessionsListScreenState
           Icon(Icons.my_location, size: 100, color: Colors.grey[300]),
           const SizedBox(height: 24),
           Text(
-            _searchQuery.isEmpty
-                ? 'No range sessions yet'
-                : 'No sessions found',
+            'No range sessions yet',
             style: Theme.of(
               context,
             ).textTheme.headlineSmall?.copyWith(color: Colors.grey[600]),
           ),
           const SizedBox(height: 8),
           Text(
-            _searchQuery.isEmpty
-                ? 'Add your first range session to get started'
-                : 'Try a different search term',
+            'Add your first range session to get started',
             style: Theme.of(
               context,
             ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
           ),
-          if (_searchQuery.isEmpty) ...[
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _navigateToAddSession,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Session'),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  void _showSearchDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Search Range Sessions'),
-        content: TextField(
-          controller: _searchController,
-          decoration: const InputDecoration(
-            hintText: 'Enter location',
-            prefixIcon: Icon(Icons.search),
-          ),
-          autofocus: true,
-          onSubmitted: (value) {
-            setState(() {
-              _searchQuery = value;
-            });
-            Navigator.pop(context);
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _searchQuery = '';
-                _searchController.clear();
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Clear'),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _searchQuery = _searchController.text;
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Search'),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: _navigateToAddSession,
+            icon: const Icon(Icons.add),
+            label: const Text('Add Session'),
           ),
         ],
       ),

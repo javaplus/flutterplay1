@@ -46,9 +46,4 @@ class RangeSessionRepositoryImpl implements RangeSessionRepository {
   Future<void> deleteRangeSession(String id) async {
     await localDataSource.deleteRangeSession(id);
   }
-
-  @override
-  Future<List<RangeSession>> searchRangeSessions(String query) async {
-    return await localDataSource.searchRangeSessions(query);
-  }
 }

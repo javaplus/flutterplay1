@@ -21,7 +21,6 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
   final _formKey = GlobalKey<FormState>();
 
   // Controllers
-  final _locationController = TextEditingController();
   final _roundsFiredController = TextEditingController();
   final _weatherController = TextEditingController();
   final _avgVelocityController = TextEditingController();
@@ -43,11 +42,10 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
     if (widget.session != null) {
       final session = widget.session!;
       _selectedDate = session.date;
-      _locationController.text = session.location;
       _selectedFirearmId = session.firearmId;
       _selectedLoadRecipeId = session.loadRecipeId;
       _roundsFiredController.text = session.roundsFired.toString();
-      _weatherController.text = session.weather;
+      _weatherController.text = session.weather ?? '';
       _avgVelocityController.text = session.avgVelocity?.toString() ?? '';
       _sdController.text = session.standardDeviation?.toString() ?? '';
       _esController.text = session.extremeSpread?.toString() ?? '';
@@ -57,7 +55,6 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
 
   @override
   void dispose() {
-    _locationController.dispose();
     _roundsFiredController.dispose();
     _weatherController.dispose();
     _avgVelocityController.dispose();
@@ -91,24 +88,6 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
                 title: const Text('Date'),
                 subtitle: Text(_formatDate(_selectedDate)),
                 onTap: _pickDate,
-              ),
-              const SizedBox(height: 16),
-
-              // Location
-              TextFormField(
-                controller: _locationController,
-                decoration: const InputDecoration(
-                  labelText: 'Location *',
-                  hintText: 'e.g., Public Range, Private Land',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.location_on),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a location';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 16),
 
@@ -229,18 +208,12 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
               TextFormField(
                 controller: _weatherController,
                 decoration: const InputDecoration(
-                  labelText: 'Weather *',
+                  labelText: 'Weather (Optional)',
                   hintText: 'e.g., 72°F, sunny, 5mph wind',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.wb_sunny),
                 ),
                 maxLines: 2,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter weather conditions';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 24),
 
@@ -353,11 +326,12 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
     final session = RangeSession(
       id: isEditing ? widget.session!.id : const Uuid().v4(),
       date: _selectedDate,
-      location: _locationController.text.trim(),
       firearmId: _selectedFirearmId!,
       loadRecipeId: _selectedLoadRecipeId!,
       roundsFired: int.parse(_roundsFiredController.text),
-      weather: _weatherController.text.trim(),
+      weather: _weatherController.text.trim().isEmpty
+          ? null
+          : _weatherController.text.trim(),
       avgVelocity: _avgVelocityController.text.isEmpty
           ? null
           : double.tryParse(_avgVelocityController.text),

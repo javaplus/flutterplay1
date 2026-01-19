@@ -68,16 +68,6 @@ final rangeSessionsByLoadRecipeIdProvider =
       return await repository.getRangeSessionsByLoadRecipeId(loadRecipeId);
     });
 
-/// Provider for search results
-final rangeSessionSearchProvider =
-    FutureProvider.family<List<RangeSession>, String>((ref, query) async {
-      final repository = ref.watch(rangeSessionRepositoryProvider);
-      if (query.isEmpty) {
-        return await repository.getAllRangeSessions();
-      }
-      return await repository.searchRangeSessions(query);
-    });
-
 /// Provider for targets by range session ID
 final targetsByRangeSessionIdProvider =
     FutureProvider.family<List<Target>, String>((ref, rangeSessionId) async {
