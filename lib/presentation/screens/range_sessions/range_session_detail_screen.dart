@@ -4,9 +4,11 @@ import 'package:intl/intl.dart';
 import '../../providers/range_session_provider.dart';
 import '../../providers/firearm_provider.dart';
 import '../../providers/load_recipe_provider.dart';
+import '../../providers/shot_velocity_provider.dart';
 import '../../../domain/entities/range_session.dart';
 import 'add_range_session_wizard.dart';
 import 'add_target_screen.dart';
+import 'chronograph_camera_screen.dart';
 
 /// Detail screen for viewing a specific range session
 class RangeSessionDetailScreen extends ConsumerWidget {
@@ -183,123 +185,13 @@ class RangeSessionDetailScreen extends ConsumerWidget {
                       )
                     else
                       ...targets.map(
-                        (target) => Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.filter_center_focus,
-                                      size: 16,
-                                      color: Colors.grey[600],
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        '${target.distance} yards • ${target.numberOfShots} shots',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                      ),
-                                    ),
-                                    PopupMenuButton(
-                                      itemBuilder: (context) => [
-                                        const PopupMenuItem(
-                                          value: 'edit',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.edit),
-                                              SizedBox(width: 8),
-                                              Text('Edit'),
-                                            ],
-                                          ),
-                                        ),
-                                        const PopupMenuItem(
-                                          value: 'delete',
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.delete,
-                                                color: Colors.red,
-                                              ),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                'Delete',
-                                                style: TextStyle(
-                                                  color: Colors.red,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                      onSelected: (value) {
-                                        if (value == 'edit') {
-                                          _navigateToEditTarget(
-                                            context,
-                                            session,
-                                            target,
-                                          );
-                                        } else if (value == 'delete') {
-                                          _confirmDeleteTarget(
-                                            context,
-                                            ref,
-                                            target,
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  ],
-                                ),
-                                if (target.groupSizeInches != null ||
-                                    target.groupSizeMoa != null) ...[
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Group: ${target.groupSizeInches != null ? "${target.groupSizeInches!.toStringAsFixed(3)}\"" : ""} ${target.groupSizeMoa != null ? "(${target.groupSizeMoa!.toStringAsFixed(2)} MOA)" : ""}',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium,
-                                  ),
-                                ],
-                                if (target.notes != null &&
-                                    target.notes!.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    target.notes!,
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(color: Colors.grey[600]),
-                                  ),
-                                ],
-                                if (target.photoPath != null) ...[
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.photo,
-                                        size: 14,
-                                        color: Colors.grey[600],
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Photo attached',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.copyWith(color: Colors.grey[600]),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
+                        (target) => _TargetCard(
+                          target: target,
+                          session: session,
+                          onEdit: () =>
+                              _navigateToEditTarget(context, session, target),
+                          onDelete: () =>
+                              _confirmDeleteTarget(context, ref, target),
                         ),
                       ),
                     const SizedBox(height: 24),
@@ -487,6 +379,230 @@ class RangeSessionDetailScreen extends ConsumerWidget {
             child: const Text('Delete'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Reusable target card widget with velocity information
+class _TargetCard extends ConsumerWidget {
+  final target;
+  final session;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _TargetCard({
+    required this.target,
+    required this.session,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final velocitiesAsync = ref.watch(
+      shotVelocitiesByTargetIdProvider(target.id),
+    );
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header row with basic info and menu
+            Row(
+              children: [
+                Icon(
+                  Icons.filter_center_focus,
+                  size: 16,
+                  color: Colors.grey[600],
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: velocitiesAsync.when(
+                    data: (velocities) {
+                      final shotCount = velocities.length;
+                      return Text(
+                        '${target.distance} yards • ${shotCount > 0 ? shotCount : target.numberOfShots} shots',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
+                    loading: () => Text(
+                      '${target.distance} yards • ${target.numberOfShots} shots',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    error: (_, __) => Text(
+                      '${target.distance} yards • ${target.numberOfShots} shots',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                PopupMenuButton(
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'velocities',
+                      child: Row(
+                        children: [
+                          Icon(Icons.speed),
+                          SizedBox(width: 8),
+                          Text('Record Velocities'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit),
+                          SizedBox(width: 8),
+                          Text('Edit'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Delete', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onSelected: (value) {
+                    if (value == 'velocities') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ChronographCameraScreen(targetId: target.id),
+                        ),
+                      ).then((_) {
+                        ref.invalidate(
+                          shotVelocitiesByTargetIdProvider(target.id),
+                        );
+                        ref.invalidate(
+                          targetsByRangeSessionIdProvider(session.id),
+                        );
+                      });
+                    } else if (value == 'edit') {
+                      onEdit();
+                    } else if (value == 'delete') {
+                      onDelete();
+                    }
+                  },
+                ),
+              ],
+            ),
+
+            // Group size
+            if (target.groupSizeInches != null ||
+                target.groupSizeMoa != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Group: ${target.groupSizeInches != null ? "${target.groupSizeInches!.toStringAsFixed(3)}\"" : ""} ${target.groupSizeMoa != null ? "(${target.groupSizeMoa!.toStringAsFixed(2)} MOA)" : ""}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+
+            // Velocity statistics
+            velocitiesAsync.when(
+              data: (velocities) {
+                if (velocities.isEmpty) return const SizedBox.shrink();
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 8),
+                    if (target.avgVelocity != null)
+                      Text(
+                        'Avg Velocity: ${target.avgVelocity!.toStringAsFixed(1)} fps',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    if (target.standardDeviation != null)
+                      Text(
+                        'SD: ${target.standardDeviation!.toStringAsFixed(2)} fps',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    if (target.extremeSpread != null)
+                      Text(
+                        'ES: ${target.extremeSpread!.toStringAsFixed(1)} fps',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: velocities.take(10).map((v) {
+                        return Chip(
+                          label: Text(
+                            v.velocity.toStringAsFixed(0),
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          padding: EdgeInsets.zero,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        );
+                      }).toList(),
+                    ),
+                    if (velocities.length > 10)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          '+ ${velocities.length - 10} more',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Colors.grey[600],
+                                fontStyle: FontStyle.italic,
+                              ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+
+            // Notes
+            if (target.notes != null && target.notes!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                target.notes!,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+              ),
+            ],
+
+            // Photo indicator
+            if (target.photoPath != null) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(Icons.photo, size: 14, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Photo attached',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

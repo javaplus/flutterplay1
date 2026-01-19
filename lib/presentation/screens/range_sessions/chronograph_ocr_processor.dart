@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 /// Helper class for processing chronograph OCR
@@ -55,14 +56,24 @@ class ChronographOCRProcessor {
       // Run OCR
       final recognizedText = await _textRecognizer.processImage(inputImage);
 
+      // Debug output
+      if (kDebugMode && recognizedText.text.isNotEmpty) {
+        print('OCR detected: ${recognizedText.text}');
+      }
+
       // Extract velocity from text
       final velocity = _extractVelocity(recognizedText.text);
 
       if (velocity != null) {
+        if (kDebugMode) {
+          print('Velocity extracted: $velocity fps');
+        }
         _addDetection(velocity);
       }
     } catch (e) {
-      // Silently handle processing errors
+      if (kDebugMode) {
+        print('OCR processing error: $e');
+      }
     } finally {
       _isProcessing = false;
     }
@@ -76,10 +87,19 @@ class ChronographOCRProcessor {
       _recentDetections.removeAt(0);
     }
 
+    if (kDebugMode) {
+      print(
+        'Recent detections buffer: $_recentDetections (${_recentDetections.length}/$_maxRecentFrames)',
+      );
+    }
+
     // Check if we have enough confirmations
     if (_recentDetections.length >= _maxRecentFrames) {
       final confirmedVelocity = _getConfirmedVelocity();
       if (confirmedVelocity != null && confirmedVelocity != _lastVelocity) {
+        if (kDebugMode) {
+          print('✓ Velocity CONFIRMED: $confirmedVelocity fps');
+        }
         _lastVelocity = confirmedVelocity;
         _lastDetectionTime = DateTime.now();
         _velocityStreamController.add(confirmedVelocity);
@@ -126,14 +146,19 @@ class ChronographOCRProcessor {
     // Remove whitespace and look for 3-4 digit numbers
     final cleaned = text.replaceAll(RegExp(r'\s+'), '');
 
-    // Look for velocity patterns (typically 3-4 digits, 500-5000 fps range)
-    final velocityPattern = RegExp(r'\b([5-9]\d{2,3}|[1-4]\d{3})\b');
-    final match = velocityPattern.firstMatch(cleaned);
+    // Look for velocity patterns (typically 3-4 digits)
+    // Also support lower velocities starting from 100 fps
+    final velocityPattern = RegExp(r'(\d{3,4})');
+    final matches = velocityPattern.allMatches(cleaned);
 
-    if (match != null) {
+    for (final match in matches) {
       final velocityStr = match.group(1);
       if (velocityStr != null) {
-        return double.tryParse(velocityStr);
+        final velocity = double.tryParse(velocityStr);
+        // Accept velocities in reasonable range (100-9999 fps)
+        if (velocity != null && velocity >= 100 && velocity <= 9999) {
+          return velocity;
+        }
       }
     }
 

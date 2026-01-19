@@ -252,10 +252,86 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
   }
 
   Future<void> _openChronographCamera() async {
+    // If we're editing an existing target, we already have a targetId
+    if (widget.target != null) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              ChronographCameraScreen(targetId: widget.target!.id),
+        ),
+      );
+      return;
+    }
+
+    // For new targets, we need to save the target first to get an ID
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please fill in required fields before recording velocities',
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Check at least one group size is provided
+    if (_groupInchesController.text.isEmpty &&
+        _groupCmController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter group size before recording velocities'),
+        ),
+      );
+      return;
+    }
+
+    // Save the target first
+    final now = DateTime.now();
+    final targetId = const Uuid().v4();
+    final target = Target(
+      id: targetId,
+      rangeSessionId: widget.rangeSessionId,
+      distance: double.parse(_distanceController.text),
+      numberOfShots: int.parse(_shotsController.text),
+      groupSizeInches: _groupInchesController.text.isEmpty
+          ? null
+          : double.tryParse(_groupInchesController.text),
+      groupSizeCm: _groupCmController.text.isEmpty
+          ? null
+          : double.tryParse(_groupCmController.text),
+      photoPath: _photoPath,
+      notes: _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim(),
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final notifier = ref.read(targetNotifierProvider.notifier);
+    await notifier.addTarget(target);
+
+    if (!mounted) return;
+
+    // Now open the camera screen with the target ID
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const ChronographCameraScreen()),
+      MaterialPageRoute(
+        builder: (context) => ChronographCameraScreen(targetId: targetId),
+      ),
     );
+
+    // After recording, close this screen since target is already saved
+    if (mounted) {
+      ref.invalidate(targetsByRangeSessionIdProvider(widget.rangeSessionId));
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Target and velocities saved successfully'),
+        ),
+      );
+    }
   }
 
   Future<void> _saveTarget() async {

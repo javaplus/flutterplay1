@@ -5,11 +5,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+import '../../../domain/entities/shot_velocity.dart';
+import '../../providers/shot_velocity_provider.dart';
+import '../../providers/range_session_provider.dart';
 import 'chronograph_ocr_processor.dart';
 
 /// Screen for capturing velocities from a chronograph using camera OCR
 class ChronographCameraScreen extends ConsumerStatefulWidget {
-  const ChronographCameraScreen({super.key});
+  final String targetId;
+
+  const ChronographCameraScreen({super.key, required this.targetId});
 
   @override
   ConsumerState<ChronographCameraScreen> createState() =>
@@ -129,6 +135,8 @@ class _ChronographCameraScreenState
         _capturedVelocities.add(velocity);
       });
 
+      _saveVelocityToDatabase(velocity);
+
       // Haptic feedback
       if (mounted) {
         HapticFeedback.mediumImpact();
@@ -180,6 +188,7 @@ class _ChronographCameraScreenState
                   setState(() {
                     _capturedVelocities.add(velocity);
                   });
+                  _saveVelocityToDatabase(velocity);
                   Navigator.pop(context);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -193,6 +202,20 @@ class _ChronographCameraScreenState
         );
       },
     );
+  }
+
+  Future<void> _saveVelocityToDatabase(double velocity) async {
+    final shotVelocity = ShotVelocity(
+      id: const Uuid().v4(),
+      targetId: widget.targetId,
+      velocity: velocity,
+      timestamp: DateTime.now(),
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    final notifier = ref.read(shotVelocityNotifierProvider.notifier);
+    await notifier.addShotVelocity(shotVelocity);
   }
 
   void _deleteVelocity(int index) {
@@ -209,13 +232,48 @@ class _ChronographCameraScreenState
     }
   }
 
-  void _saveAndReturn() {
+  void _saveAndReturn() async {
     if (_capturedVelocities.isEmpty) {
       _showError('No velocities captured');
       return;
     }
 
-    Navigator.pop(context, _capturedVelocities);
+    // Calculate statistics
+    final avgVelocity =
+        _capturedVelocities.reduce((a, b) => a + b) /
+        _capturedVelocities.length;
+    final sortedVelocities = List<double>.from(_capturedVelocities)..sort();
+    final extremeSpread = sortedVelocities.last - sortedVelocities.first;
+
+    double? standardDeviation;
+    if (_capturedVelocities.length > 1) {
+      final variance =
+          _capturedVelocities
+              .map((v) => math.pow(v - avgVelocity, 2))
+              .reduce((a, b) => a + b) /
+          _capturedVelocities.length;
+      standardDeviation = math.sqrt(variance);
+    }
+
+    // Update the target with velocity statistics
+    final targetNotifier = ref.read(targetNotifierProvider.notifier);
+    await targetNotifier.updateTargetVelocityStats(
+      widget.targetId,
+      avgVelocity,
+      standardDeviation,
+      extremeSpread,
+    );
+
+    if (mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Saved ${_capturedVelocities.length} velocities. Avg: ${avgVelocity.toStringAsFixed(1)} fps',
+          ),
+        ),
+      );
+    }
   }
 
   @override

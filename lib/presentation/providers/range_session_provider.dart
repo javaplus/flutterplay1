@@ -170,6 +170,37 @@ class TargetNotifier extends StateNotifier<AsyncValue<void>> {
       await repository.deleteTarget(id);
     });
   }
+
+  /// Update target with velocity statistics
+  Future<void> updateTargetVelocityStats(
+    String targetId,
+    double avgVelocity,
+    double? standardDeviation,
+    double extremeSpread,
+  ) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final target = await repository.getTargetById(targetId);
+      if (target != null) {
+        final updatedTarget = Target(
+          id: target.id,
+          rangeSessionId: target.rangeSessionId,
+          distance: target.distance,
+          numberOfShots: target.numberOfShots,
+          groupSizeInches: target.groupSizeInches,
+          groupSizeCm: target.groupSizeCm,
+          photoPath: target.photoPath,
+          avgVelocity: avgVelocity,
+          standardDeviation: standardDeviation,
+          extremeSpread: extremeSpread,
+          notes: target.notes,
+          createdAt: target.createdAt,
+          updatedAt: DateTime.now(),
+        );
+        await repository.updateTarget(updatedTarget);
+      }
+    });
+  }
 }
 
 /// Provider for range session notifier
