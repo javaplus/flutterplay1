@@ -74,7 +74,7 @@ class RangeSessionCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '${loadRecipe!.bulletWeight}gr ${loadRecipe!.bulletType} • ${loadRecipe!.powderType}',
+                        '${loadRecipe!.bulletWeight}gr ${loadRecipe!.bulletType} • ${loadRecipe!.powderCharge}gr ${loadRecipe!.powderType}',
                         style: Theme.of(context).textTheme.bodyMedium,
                         overflow: TextOverflow.ellipsis,
                       ),
