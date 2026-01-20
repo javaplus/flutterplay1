@@ -39,21 +39,39 @@ class _RangeSessionsListScreenState
               itemBuilder: (context, index) {
                 final session = sessions[index];
 
-                // Fetch firearm and load recipe data
+                // Fetch firearm, load recipe, and targets data
                 final firearmAsync = ref.watch(
                   firearmByIdProvider(session.firearmId),
                 );
                 final loadRecipeAsync = ref.watch(
                   loadRecipeByIdProvider(session.loadRecipeId),
                 );
+                final targetsAsync = ref.watch(
+                  targetsByRangeSessionIdProvider(session.id),
+                );
 
                 return firearmAsync.when(
                   data: (firearm) => loadRecipeAsync.when(
-                    data: (loadRecipe) => RangeSessionCard(
-                      session: session,
-                      firearm: firearm,
-                      loadRecipe: loadRecipe,
-                      onTap: () => _navigateToDetail(session.id),
+                    data: (loadRecipe) => targetsAsync.when(
+                      data: (targets) => RangeSessionCard(
+                        session: session,
+                        firearm: firearm,
+                        loadRecipe: loadRecipe,
+                        targets: targets,
+                        onTap: () => _navigateToDetail(session.id),
+                      ),
+                      loading: () => RangeSessionCard(
+                        session: session,
+                        firearm: firearm,
+                        loadRecipe: loadRecipe,
+                        onTap: () => _navigateToDetail(session.id),
+                      ),
+                      error: (_, __) => RangeSessionCard(
+                        session: session,
+                        firearm: firearm,
+                        loadRecipe: loadRecipe,
+                        onTap: () => _navigateToDetail(session.id),
+                      ),
                     ),
                     loading: () => const SizedBox.shrink(),
                     error: (_, __) => const SizedBox.shrink(),

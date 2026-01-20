@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/range_session.dart';
 import '../../domain/entities/firearm.dart';
 import '../../domain/entities/load_recipe.dart';
+import '../../domain/entities/target.dart';
 
 /// A card widget for displaying a range session in a list
 class RangeSessionCard extends StatelessWidget {
   final RangeSession session;
   final Firearm? firearm;
   final LoadRecipe? loadRecipe;
+  final List<Target>? targets;
   final VoidCallback onTap;
 
   const RangeSessionCard({
@@ -15,6 +17,7 @@ class RangeSessionCard extends StatelessWidget {
     required this.session,
     this.firearm,
     this.loadRecipe,
+    this.targets,
     required this.onTap,
   });
 
@@ -82,13 +85,12 @@ class RangeSessionCard extends StatelessWidget {
               ],
 
               // Stats row
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  _buildStatChip(
-                    context,
-                    Icons.whatshot,
-                    '${session.roundsFired} rounds',
-                  ),
+                  if (targets != null && targets!.isNotEmpty)
+                    ..._buildVelocityStats(context),
                 ],
               ),
             ],
@@ -96,6 +98,60 @@ class RangeSessionCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<Widget> _buildVelocityStats(BuildContext context) {
+    if (targets == null || targets!.isEmpty) return [];
+
+    // Calculate total shots and aggregate velocity statistics
+    int totalShots = 0;
+    double totalAvgVelocity = 0;
+    double totalStdDev = 0;
+    int targetsWithVelocity = 0;
+
+    for (final target in targets!) {
+      totalShots += target.numberOfShots;
+      if (target.avgVelocity != null) {
+        totalAvgVelocity += target.avgVelocity!;
+        targetsWithVelocity++;
+      }
+      if (target.standardDeviation != null) {
+        totalStdDev += target.standardDeviation!;
+      }
+    }
+
+    final List<Widget> stats = [];
+
+    // Total shots
+    if (totalShots > 0) {
+      stats.add(_buildStatChip(context, Icons.speed, '$totalShots shots'));
+    }
+
+    // Average velocity
+    if (targetsWithVelocity > 0) {
+      final avgVelocity = totalAvgVelocity / targetsWithVelocity;
+      stats.add(
+        _buildStatChip(
+          context,
+          Icons.trending_up,
+          '${avgVelocity.toStringAsFixed(0)} fps',
+        ),
+      );
+    }
+
+    // Standard deviation
+    if (targetsWithVelocity > 0) {
+      final avgStdDev = totalStdDev / targetsWithVelocity;
+      stats.add(
+        _buildStatChip(
+          context,
+          Icons.show_chart,
+          'SD ${avgStdDev.toStringAsFixed(1)}',
+        ),
+      );
+    }
+
+    return stats;
   }
 
   Widget _buildStatChip(BuildContext context, IconData icon, String text) {

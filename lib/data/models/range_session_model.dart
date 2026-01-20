@@ -7,7 +7,6 @@ class RangeSessions extends Table {
   DateTimeColumn get date => dateTime()();
   TextColumn get firearmId => text()(); // Foreign key to Firearms
   TextColumn get loadRecipeId => text()(); // Foreign key to LoadRecipes
-  IntColumn get roundsFired => integer()();
   TextColumn get weather => text().nullable()();
   TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
@@ -26,7 +25,6 @@ class Targets extends Table {
   RealColumn get distance => real()();
   IntColumn get numberOfShots => integer()();
   RealColumn get groupSizeInches => real().nullable()();
-  RealColumn get groupSizeCm => real().nullable()();
   RealColumn get groupSizeMoa => real().nullable()();
   RealColumn get avgVelocity => real().nullable()();
   RealColumn get standardDeviation => real().nullable()();

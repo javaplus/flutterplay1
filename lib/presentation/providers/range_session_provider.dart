@@ -182,13 +182,17 @@ class TargetNotifier extends StateNotifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() async {
       final target = await repository.getTargetById(targetId);
       if (target != null) {
+        // Get shot velocities to count them
+        final velocities = await shotVelocityRepository
+            .getShotVelocitiesByTargetId(targetId);
+
         final updatedTarget = Target(
           id: target.id,
           rangeSessionId: target.rangeSessionId,
           distance: target.distance,
-          numberOfShots: target.numberOfShots,
+          numberOfShots: velocities.length, // Auto-update from velocity count
           groupSizeInches: target.groupSizeInches,
-          groupSizeCm: target.groupSizeCm,
+          groupSizeMoa: target.groupSizeMoa,
           photoPath: target.photoPath,
           avgVelocity: avgVelocity,
           standardDeviation: standardDeviation,

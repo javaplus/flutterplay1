@@ -21,7 +21,6 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
   final _formKey = GlobalKey<FormState>();
 
   // Controllers
-  final _roundsFiredController = TextEditingController();
   final _weatherController = TextEditingController();
   final _notesController = TextEditingController();
 
@@ -41,7 +40,6 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
       _selectedDate = session.date;
       _selectedFirearmId = session.firearmId;
       _selectedLoadRecipeId = session.loadRecipeId;
-      _roundsFiredController.text = session.roundsFired.toString();
       _weatherController.text = session.weather ?? '';
       _notesController.text = session.notes ?? '';
     }
@@ -49,7 +47,6 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
 
   @override
   void dispose() {
-    _roundsFiredController.dispose();
     _weatherController.dispose();
     _notesController.dispose();
     super.dispose();
@@ -174,27 +171,6 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
               ),
               const SizedBox(height: 16),
 
-              // Rounds Fired
-              TextFormField(
-                controller: _roundsFiredController,
-                decoration: const InputDecoration(
-                  labelText: 'Rounds Fired *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.whatshot),
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter rounds fired';
-                  }
-                  if (int.tryParse(value) == null) {
-                    return 'Please enter a valid number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
               // Weather
               TextFormField(
                 controller: _weatherController,
@@ -271,7 +247,6 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
       date: _selectedDate,
       firearmId: _selectedFirearmId!,
       loadRecipeId: _selectedLoadRecipeId!,
-      roundsFired: int.parse(_roundsFiredController.text),
       weather: _weatherController.text.trim().isEmpty
           ? null
           : _weatherController.text.trim(),
