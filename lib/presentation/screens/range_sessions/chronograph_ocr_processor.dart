@@ -15,7 +15,9 @@ class ChronographOCRProcessor {
   final List<double> _recentDetections = [];
   final int _confirmationFrames = 3; // Require 3/5 frames to match
   final int _maxRecentFrames = 5;
-  final Duration _debounceDelay = const Duration(milliseconds: 200);
+  final Duration _debounceDelay = const Duration(
+    seconds: 3,
+  ); // Prevent duplicate shots
 
   ui.Rect? _roiRect; // Region of Interest
   bool _isProcessing = false;
@@ -45,8 +47,8 @@ class ChronographOCRProcessor {
     }
 
     try {
-      // Check debounce delay
-      if (_lastDetectionTime != null) {
+      // Check debounce delay and velocity similarity
+      if (_lastDetectionTime != null && _lastVelocity != null) {
         final timeSinceLastDetection = DateTime.now().difference(
           _lastDetectionTime!,
         );
@@ -80,10 +82,19 @@ class ChronographOCRProcessor {
         print('OCR detected text: "${recognizedText.text}"');
       }
 
-      // Extract velocity from text
-      final velocity = _extractVelocity(recognizedText.text);
+      // Extract velocity from recognized text blocks (prioritize largest text)
+      final velocity = _extractVelocity(recognizedText);
 
       if (velocity != null) {
+        // Skip if this velocity is exactly the same as the last recorded shot
+        if (_lastVelocity != null && velocity == _lastVelocity) {
+          if (kDebugMode) {
+            print('⊘ Skipping duplicate velocity: $velocity fps');
+          }
+          _isProcessing = false;
+          return;
+        }
+
         if (kDebugMode) {
           print('✓ Velocity extracted: $velocity fps');
         }
@@ -163,24 +174,61 @@ class ChronographOCRProcessor {
     return bestVelocity;
   }
 
-  /// Extract velocity from OCR text
-  double? _extractVelocity(String text) {
-    // Remove whitespace but keep periods for decimals
+  /// Extract velocity from OCR text - prioritize largest text elements
+  double? _extractVelocity(RecognizedText recognizedText) {
+    // Collect all text elements with their bounding box sizes
+    final List<({String text, double size})> textElements = [];
+
+    for (final block in recognizedText.blocks) {
+      for (final line in block.lines) {
+        for (final element in line.elements) {
+          final boundingBox = element.boundingBox;
+          // Calculate size as area of bounding box (width * height)
+          final size = boundingBox.width * boundingBox.height;
+          textElements.add((text: element.text, size: size));
+
+          if (kDebugMode) {
+            print(
+              '  Element: "${element.text}" size: ${size.toStringAsFixed(1)}',
+            );
+          }
+        }
+      }
+    }
+
+    // Sort by size (largest first)
+    textElements.sort((a, b) => b.size.compareTo(a.size));
+
+    // Look for velocity in largest text elements first
+    for (final element in textElements) {
+      final velocity = _parseVelocityFromText(element.text);
+      if (velocity != null) {
+        if (kDebugMode) {
+          print(
+            '  ✓ Found velocity in largest text: "$element.text" -> $velocity fps',
+          );
+        }
+        return velocity;
+      }
+    }
+
+    return null;
+  }
+
+  /// Parse velocity from a single text string
+  double? _parseVelocityFromText(String text) {
+    // Remove whitespace
     final cleaned = text.replaceAll(RegExp(r'\s+'), '');
 
-    // Look for velocity patterns with optional decimal
-    // Matches: 344.2, 2333.5, 1234, 567.8, etc.
-    final velocityPattern = RegExp(r'(\d{3,4}(?:\.\d)?)');
-    final matches = velocityPattern.allMatches(cleaned);
+    // Look for velocity patterns with optional decimal (allow up to 2 decimal places)
+    // Matches: 398.8, 2333.5, 1234, 567.85, etc.
+    final velocityPattern = RegExp(r'^\d{3,4}(?:\.\d{1,2})?$');
 
-    for (final match in matches) {
-      final velocityStr = match.group(1);
-      if (velocityStr != null) {
-        final velocity = double.tryParse(velocityStr);
-        // Accept velocities in reasonable range (100-9999 fps)
-        if (velocity != null && velocity >= 100 && velocity <= 9999) {
-          return velocity;
-        }
+    if (velocityPattern.hasMatch(cleaned)) {
+      final velocity = double.tryParse(cleaned);
+      // Accept velocities in reasonable range (100-9999 fps)
+      if (velocity != null && velocity >= 100 && velocity <= 9999) {
+        return velocity;
       }
     }
 
