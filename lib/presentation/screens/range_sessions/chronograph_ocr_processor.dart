@@ -89,14 +89,18 @@ class ChronographOCRProcessor {
         // Skip if this velocity is exactly the same as the last recorded shot
         if (_lastVelocity != null && velocity == _lastVelocity) {
           if (kDebugMode) {
-            print('⊘ Skipping duplicate velocity: $velocity fps');
+            print(
+              '⊘ Skipping duplicate velocity: $velocity fps (last: $_lastVelocity fps)',
+            );
           }
           _isProcessing = false;
           return;
         }
 
         if (kDebugMode) {
-          print('✓ Velocity extracted: $velocity fps');
+          print(
+            '✓ Velocity extracted: $velocity fps (type: ${velocity.runtimeType}, last: $_lastVelocity)',
+          );
         }
         _addDetection(velocity);
       } else if (kDebugMode && recognizedText.text.isNotEmpty) {
@@ -136,32 +140,30 @@ class ChronographOCRProcessor {
         _lastVelocity = confirmedVelocity;
         _lastDetectionTime = DateTime.now();
         _velocityStreamController.add(confirmedVelocity);
-        _recentDetections.clear(); // Clear after successful detection
       }
+      _recentDetections
+          .clear(); // Always clear after checking, regardless of match
     }
   }
 
-  /// Get confirmed velocity if at least N frames agree
+  /// Get confirmed velocity if at least N frames agree exactly
   double? _getConfirmedVelocity() {
     if (_recentDetections.length < _confirmationFrames) return null;
 
-    // Group velocities within 10 fps tolerance
+    if (kDebugMode) {
+      print('  Confirming velocity from detections: $_recentDetections');
+    }
+
+    // Count exact matches - no tolerance
     final Map<double, int> velocityGroups = {};
     for (final velocity in _recentDetections) {
-      bool foundGroup = false;
-      for (final key in velocityGroups.keys) {
-        if ((velocity - key).abs() <= 10) {
-          velocityGroups[key] = velocityGroups[key]! + 1;
-          foundGroup = true;
-          break;
-        }
-      }
-      if (!foundGroup) {
-        velocityGroups[velocity] = 1;
+      velocityGroups[velocity] = (velocityGroups[velocity] ?? 0) + 1;
+      if (kDebugMode) {
+        print('    Count for $velocity: ${velocityGroups[velocity]}');
       }
     }
 
-    // Find the group with most occurrences
+    // Find the velocity with most exact matches
     double? bestVelocity;
     int maxCount = 0;
     velocityGroups.forEach((velocity, count) {
@@ -170,6 +172,10 @@ class ChronographOCRProcessor {
         maxCount = count;
       }
     });
+
+    if (kDebugMode && bestVelocity != null) {
+      print('  ✓ Confirmed velocity: $bestVelocity (count: $maxCount)');
+    }
 
     return bestVelocity;
   }
@@ -199,13 +205,22 @@ class ChronographOCRProcessor {
     // Sort by size (largest first)
     textElements.sort((a, b) => b.size.compareTo(a.size));
 
+    if (kDebugMode) {
+      print('  Checking elements in sorted order (largest first):');
+    }
+
     // Look for velocity in largest text elements first
     for (final element in textElements) {
+      if (kDebugMode) {
+        print(
+          '    Checking: "${element.text}" (size: ${element.size.toStringAsFixed(1)})',
+        );
+      }
       final velocity = _parseVelocityFromText(element.text);
       if (velocity != null) {
         if (kDebugMode) {
           print(
-            '  ✓ Found velocity in largest text: "$element.text" -> $velocity fps',
+            '  ✓ Found velocity in largest text: "${element.text}" -> $velocity fps (size: ${element.size.toStringAsFixed(1)})',
           );
         }
         return velocity;
@@ -218,7 +233,14 @@ class ChronographOCRProcessor {
   /// Parse velocity from a single text string
   double? _parseVelocityFromText(String text) {
     // Remove whitespace
-    final cleaned = text.replaceAll(RegExp(r'\s+'), '');
+    var cleaned = text.replaceAll(RegExp(r'\s+'), '');
+
+    // Remove leading/trailing non-numeric characters (like ":", ",", etc.)
+    // but preserve digits and decimal points
+    cleaned = cleaned.replaceAll(RegExp(r'^[^\d]+|[^\d]+$'), '');
+
+    // Replace commas with periods (for cases like "384,3")
+    cleaned = cleaned.replaceAll(',', '.');
 
     // Look for velocity patterns with optional decimal (allow up to 2 decimal places)
     // Matches: 398.8, 2333.5, 1234, 567.85, etc.
