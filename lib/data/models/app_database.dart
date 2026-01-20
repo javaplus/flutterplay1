@@ -23,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(QueryExecutor e) : super(e);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -67,6 +67,11 @@ class AppDatabase extends _$AppDatabase {
         // Migration from version 7 to 8: Remove roundsFired column from RangeSessions
         await m.deleteTable('range_sessions');
         await m.createTable(rangeSessions);
+      }
+      if (from < 9) {
+        // Migration from version 8 to 9: Add nickname to LoadRecipes
+        await m.deleteTable('load_recipes');
+        await m.createTable(loadRecipes);
       }
     },
   );
@@ -126,6 +131,7 @@ extension LoadRecipeExtension on LoadRecipeData {
   domain_load.LoadRecipe toEntity() {
     return domain_load.LoadRecipe(
       id: loadId,
+      nickname: nickname,
       cartridge: cartridge,
       bulletWeight: bulletWeight,
       bulletType: bulletType,
@@ -150,6 +156,7 @@ extension LoadRecipeCompanionExtension on domain_load.LoadRecipe {
   LoadRecipesCompanion toCompanion() {
     return LoadRecipesCompanion(
       loadId: Value(id),
+      nickname: Value(nickname),
       cartridge: Value(cartridge),
       bulletWeight: Value(bulletWeight),
       bulletType: Value(bulletType),

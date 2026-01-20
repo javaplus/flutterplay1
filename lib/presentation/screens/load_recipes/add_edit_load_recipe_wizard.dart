@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../domain/entities/load_recipe.dart';
 import '../../providers/load_recipe_provider.dart';
+import '../../../core/constants/calibers.dart';
 
 /// Multi-step wizard for adding or editing a load recipe
 class AddEditLoadRecipeWizard extends ConsumerStatefulWidget {
@@ -24,6 +25,7 @@ class _AddEditLoadRecipeWizardState
   final int _totalSteps = 4;
 
   // Form controllers
+  final _nicknameController = TextEditingController();
   final _cartridgeController = TextEditingController();
   final _bulletWeightController = TextEditingController();
   final _bulletTypeController = TextEditingController();
@@ -48,6 +50,7 @@ class _AddEditLoadRecipeWizardState
   void _loadLoadRecipeData() {
     if (widget.loadRecipe != null) {
       final recipe = widget.loadRecipe!;
+      _nicknameController.text = recipe.nickname;
       _cartridgeController.text = recipe.cartridge;
       _bulletWeightController.text = recipe.bulletWeight.toString();
       _bulletTypeController.text = recipe.bulletType;
@@ -66,6 +69,7 @@ class _AddEditLoadRecipeWizardState
 
   @override
   void dispose() {
+    _nicknameController.dispose();
     _cartridgeController.dispose();
     _bulletWeightController.dispose();
     _bulletTypeController.dispose();
@@ -185,18 +189,46 @@ class _AddEditLoadRecipeWizardState
           ),
           const SizedBox(height: 24),
 
-          // Cartridge
+          // Nickname
           TextFormField(
-            controller: _cartridgeController,
+            controller: _nicknameController,
+            decoration: const InputDecoration(
+              labelText: 'Nickname *',
+              hintText: 'e.g., “308 Varget 168gr OCW #2”',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.badge),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter a nickname for this load';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Cartridge (Dropdown)
+          DropdownButtonFormField<String>(
+            initialValue: _cartridgeController.text.isNotEmpty
+                ? _cartridgeController.text
+                : null,
+            items: KnownCalibers.all
+                .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                .toList(),
+            onChanged: (value) {
+              setState(() {
+                _cartridgeController.text = value ?? '';
+              });
+            },
             decoration: const InputDecoration(
               labelText: 'Cartridge *',
-              hintText: 'e.g., .308 Win, 6.5 Creedmoor',
+              hintText: 'Select a cartridge',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.label),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter a cartridge';
+                return 'Please select a cartridge';
               }
               return null;
             },
@@ -628,6 +660,7 @@ class _AddEditLoadRecipeWizardState
 
     final loadRecipe = LoadRecipe(
       id: isEditing ? widget.loadRecipe!.id : const Uuid().v4(),
+      nickname: _nicknameController.text.trim(),
       cartridge: _cartridgeController.text.trim(),
       bulletWeight: double.parse(_bulletWeightController.text),
       bulletType: _bulletTypeController.text.trim(),

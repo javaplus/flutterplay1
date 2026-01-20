@@ -2,6 +2,7 @@
 /// This represents a complete reloading recipe/load data
 class LoadRecipe {
   final String id;
+  final String nickname; // Friendly name for quick identification
   final String cartridge; // e.g., ".308 Win"
   final double bulletWeight; // In grains
   final String bulletType; // e.g., "FMJ", "HPBT"
@@ -20,6 +21,7 @@ class LoadRecipe {
 
   LoadRecipe({
     required this.id,
+    required this.nickname,
     required this.cartridge,
     required this.bulletWeight,
     required this.bulletType,
@@ -40,6 +42,7 @@ class LoadRecipe {
   /// Creates a copy of this LoadRecipe with the given fields replaced
   LoadRecipe copyWith({
     String? id,
+    String? nickname,
     String? cartridge,
     double? bulletWeight,
     String? bulletType,
@@ -58,6 +61,7 @@ class LoadRecipe {
   }) {
     return LoadRecipe(
       id: id ?? this.id,
+      nickname: nickname ?? this.nickname,
       cartridge: cartridge ?? this.cartridge,
       bulletWeight: bulletWeight ?? this.bulletWeight,
       bulletType: bulletType ?? this.bulletType,
@@ -78,7 +82,7 @@ class LoadRecipe {
 
   @override
   String toString() {
-    return 'LoadRecipe(id: $id, cartridge: $cartridge, bulletWeight: $bulletWeight, powderType: $powderType)';
+    return 'LoadRecipe(id: $id, nickname: $nickname, cartridge: $cartridge, bulletWeight: $bulletWeight, powderType: $powderType)';
   }
 
   @override

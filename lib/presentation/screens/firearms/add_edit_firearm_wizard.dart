@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
+import '../../../core/constants/calibers.dart';
 import '../../../domain/entities/firearm.dart';
 import '../../providers/firearm_provider.dart';
 
@@ -235,18 +236,28 @@ class _AddEditFirearmWizardState extends ConsumerState<AddEditFirearmWizard> {
           ),
           const SizedBox(height: 16),
 
-          // Caliber
-          TextFormField(
-            controller: _caliberController,
+          // Caliber (Dropdown)
+          DropdownButtonFormField<String>(
+            initialValue: _caliberController.text.isNotEmpty
+                ? _caliberController.text
+                : null,
+            items: KnownCalibers.all
+                .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                .toList(),
+            onChanged: (value) {
+              setState(() {
+                _caliberController.text = value ?? '';
+              });
+            },
             decoration: const InputDecoration(
               labelText: 'Caliber / Chambering *',
-              hintText: 'e.g., ".308 Win", "5.56 NATO"',
+              hintText: 'Select a caliber',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.adjust),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter the caliber';
+                return 'Please select a caliber';
               }
               return null;
             },
