@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -91,25 +92,111 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Number of shots display (read-only, auto-populated from velocities)
+              // Velocity statistics display (read-only, auto-populated from velocities)
               if (isEditing)
                 velocitiesAsync?.when(
-                      data: (velocities) => Card(
-                        color: Colors.blue[50],
-                        child: ListTile(
-                          leading: const Icon(
-                            Icons.info_outline,
-                            color: Colors.blue,
+                      data: (velocities) {
+                        if (velocities.isEmpty) {
+                          return Card(
+                            color: Colors.orange[50],
+                            child: const ListTile(
+                              leading: Icon(
+                                Icons.info_outline,
+                                color: Colors.orange,
+                              ),
+                              title: Text(
+                                'No velocities recorded yet',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: Text(
+                                'Use the "Record Shot Velocities" button below to capture velocities',
+                              ),
+                            ),
+                          );
+                        }
+
+                        // Calculate statistics
+                        final velocityValues = velocities
+                            .map((v) => v.velocity)
+                            .toList();
+                        final avg =
+                            velocityValues.reduce((a, b) => a + b) /
+                            velocityValues.length;
+                        final max = velocityValues.reduce(
+                          (a, b) => a > b ? a : b,
+                        );
+                        final min = velocityValues.reduce(
+                          (a, b) => a < b ? a : b,
+                        );
+                        final extremeSpread = max - min;
+
+                        // Calculate standard deviation
+                        double stdDev = 0;
+                        if (velocityValues.length > 1) {
+                          final variance =
+                              velocityValues
+                                  .map((v) => (v - avg) * (v - avg))
+                                  .reduce((a, b) => a + b) /
+                              velocityValues.length;
+                          stdDev = sqrt(variance);
+                        }
+
+                        return Card(
+                          color: Colors.green[50],
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.speed,
+                                      color: Colors.green,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Velocity Statistics',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.green[900],
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                                const Divider(height: 16),
+                                _buildStatRow(
+                                  'Recorded Shots',
+                                  '${velocities.length}',
+                                ),
+                                _buildStatRow(
+                                  'Average Velocity',
+                                  '${avg.toStringAsFixed(1)} fps',
+                                ),
+                                _buildStatRow(
+                                  'Standard Deviation',
+                                  '${stdDev.toStringAsFixed(1)} fps',
+                                ),
+                                _buildStatRow(
+                                  'Extreme Spread',
+                                  '${extremeSpread.toStringAsFixed(1)} fps',
+                                ),
+                                _buildStatRow(
+                                  'Min Velocity',
+                                  '${min.toStringAsFixed(1)} fps',
+                                ),
+                                _buildStatRow(
+                                  'Max Velocity',
+                                  '${max.toStringAsFixed(1)} fps',
+                                ),
+                              ],
+                            ),
                           ),
-                          title: Text(
-                            'Recorded Shots: ${velocities.length}',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: const Text(
-                            'Number of shots is automatically counted from recorded velocities',
-                          ),
-                        ),
-                      ),
+                        );
+                      },
                       loading: () => const CircularProgressIndicator(),
                       error: (_, __) => const SizedBox.shrink(),
                     ) ??
@@ -249,6 +336,29 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
         _photoPath = photo.path;
       });
     }
+  }
+
+  Widget _buildStatRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _openChronographCamera() async {
