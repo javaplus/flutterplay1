@@ -26,7 +26,6 @@ class Targets extends Table {
   RealColumn get distance => real()();
   IntColumn get numberOfShots => integer()();
   RealColumn get groupSizeInches => real().nullable()();
-  RealColumn get groupSizeCm => real().nullable()();
   RealColumn get groupSizeMoa => real().nullable()();
   RealColumn get avgVelocity => real().nullable()();
   RealColumn get standardDeviation => real().nullable()();

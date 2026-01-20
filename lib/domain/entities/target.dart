@@ -7,7 +7,6 @@ class Target {
   final double distance; // Distance to target (yards or meters)
   final int numberOfShots; // Number of shots in the group
   final double? groupSizeInches; // Manual entry - group size in inches
-  final double? groupSizeCm; // Manual entry - group size in cm
   final double? groupSizeMoa; // Manual entry or calculated - group size in MOA
   final double?
   avgVelocity; // Average velocity in fps (calculated from shot velocities)
@@ -25,7 +24,6 @@ class Target {
     required this.distance,
     required this.numberOfShots,
     this.groupSizeInches,
-    this.groupSizeCm,
     this.groupSizeMoa,
     this.avgVelocity,
     this.standardDeviation,
@@ -43,7 +41,6 @@ class Target {
     double? distance,
     int? numberOfShots,
     double? groupSizeInches,
-    double? groupSizeCm,
     double? groupSizeMoa,
     double? avgVelocity,
     double? standardDeviation,
@@ -59,7 +56,6 @@ class Target {
       distance: distance ?? this.distance,
       numberOfShots: numberOfShots ?? this.numberOfShots,
       groupSizeInches: groupSizeInches ?? this.groupSizeInches,
-      groupSizeCm: groupSizeCm ?? this.groupSizeCm,
       groupSizeMoa: groupSizeMoa ?? this.groupSizeMoa,
       avgVelocity: avgVelocity ?? this.avgVelocity,
       standardDeviation: standardDeviation ?? this.standardDeviation,

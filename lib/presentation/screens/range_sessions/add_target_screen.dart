@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../../../domain/entities/target.dart';
 import '../../providers/range_session_provider.dart';
+import '../../providers/shot_velocity_provider.dart';
 import 'chronograph_camera_screen.dart';
 
 /// Screen for adding or editing a target
@@ -20,9 +21,7 @@ class AddTargetScreen extends ConsumerStatefulWidget {
 class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
   final _formKey = GlobalKey<FormState>();
   final _distanceController = TextEditingController();
-  final _shotsController = TextEditingController();
   final _groupInchesController = TextEditingController();
-  final _groupCmController = TextEditingController();
   final _notesController = TextEditingController();
 
   String? _photoPath;
@@ -37,9 +36,7 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
     if (widget.target != null) {
       final target = widget.target!;
       _distanceController.text = target.distance.toString();
-      _shotsController.text = target.numberOfShots.toString();
       _groupInchesController.text = target.groupSizeInches?.toString() ?? '';
-      _groupCmController.text = target.groupSizeCm?.toString() ?? '';
       _notesController.text = target.notes ?? '';
       _photoPath = target.photoPath;
     }
@@ -48,9 +45,7 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
   @override
   void dispose() {
     _distanceController.dispose();
-    _shotsController.dispose();
     _groupInchesController.dispose();
-    _groupCmController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -58,6 +53,11 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.target != null;
+
+    // Watch shot velocities if editing to show count
+    final velocitiesAsync = isEditing
+        ? ref.watch(shotVelocitiesByTargetIdProvider(widget.target!.id))
+        : null;
 
     return Scaffold(
       appBar: AppBar(title: Text(isEditing ? 'Edit Target' : 'Add Target')),
@@ -91,29 +91,34 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Number of shots
-              TextFormField(
-                controller: _shotsController,
-                decoration: const InputDecoration(
-                  labelText: 'Number of Shots *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.center_focus_strong),
-                ),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter number of shots';
-                  }
-                  if (int.tryParse(value) == null) {
-                    return 'Please enter a valid number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
+              // Number of shots display (read-only, auto-populated from velocities)
+              if (isEditing)
+                velocitiesAsync?.when(
+                      data: (velocities) => Card(
+                        color: Colors.blue[50],
+                        child: ListTile(
+                          leading: const Icon(
+                            Icons.info_outline,
+                            color: Colors.blue,
+                          ),
+                          title: Text(
+                            'Recorded Shots: ${velocities.length}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: const Text(
+                            'Number of shots is automatically counted from recorded velocities',
+                          ),
+                        ),
+                      ),
+                      loading: () => const CircularProgressIndicator(),
+                      error: (_, __) => const SizedBox.shrink(),
+                    ) ??
+                    const SizedBox.shrink(),
+
+              if (isEditing) const SizedBox(height: 16),
 
               Text(
-                'Group Size (at least one)',
+                'Group Size',
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -124,27 +129,22 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
               TextFormField(
                 controller: _groupInchesController,
                 decoration: const InputDecoration(
-                  labelText: 'Group Size (inches)',
+                  labelText: 'Group Size (inches) *',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.straighten),
                 ),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-              ),
-              const SizedBox(height: 16),
-
-              // Group size in cm
-              TextFormField(
-                controller: _groupCmController,
-                decoration: const InputDecoration(
-                  labelText: 'Group Size (cm)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.straighten),
-                ),
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter group size';
+                  }
+                  if (double.tryParse(value) == null) {
+                    return 'Please enter a valid number';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 24),
 
@@ -264,7 +264,7 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
       return;
     }
 
-    // For new targets, we need to save the target first to get an ID
+    // For new targets, validate form first
     if (!_formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -276,31 +276,17 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
       return;
     }
 
-    // Check at least one group size is provided
-    if (_groupInchesController.text.isEmpty &&
-        _groupCmController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter group size before recording velocities'),
-        ),
-      );
-      return;
-    }
-
-    // Save the target first
+    // Save the target first with initial shot count of 0
     final now = DateTime.now();
     final targetId = const Uuid().v4();
     final target = Target(
       id: targetId,
       rangeSessionId: widget.rangeSessionId,
       distance: double.parse(_distanceController.text),
-      numberOfShots: int.parse(_shotsController.text),
+      numberOfShots: 0, // Will be updated when velocities are recorded
       groupSizeInches: _groupInchesController.text.isEmpty
           ? null
           : double.tryParse(_groupInchesController.text),
-      groupSizeCm: _groupCmController.text.isEmpty
-          ? null
-          : double.tryParse(_groupCmController.text),
       photoPath: _photoPath,
       notes: _notesController.text.trim().isEmpty
           ? null
@@ -339,31 +325,26 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
       return;
     }
 
-    // Ensure at least one group size is provided
-    if (_groupInchesController.text.isEmpty &&
-        _groupCmController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter group size in inches or centimeters'),
-        ),
-      );
-      return;
-    }
-
     final isEditing = widget.target != null;
     final now = DateTime.now();
+
+    // Get shot count from velocities if editing
+    int shotCount = 0;
+    if (isEditing) {
+      final velocities = await ref.read(
+        shotVelocitiesByTargetIdProvider(widget.target!.id).future,
+      );
+      shotCount = velocities.length;
+    }
 
     final target = Target(
       id: isEditing ? widget.target!.id : const Uuid().v4(),
       rangeSessionId: widget.rangeSessionId,
       distance: double.parse(_distanceController.text),
-      numberOfShots: int.parse(_shotsController.text),
+      numberOfShots: shotCount, // Use velocity count if editing, 0 if new
       groupSizeInches: _groupInchesController.text.isEmpty
           ? null
           : double.tryParse(_groupInchesController.text),
-      groupSizeCm: _groupCmController.text.isEmpty
-          ? null
-          : double.tryParse(_groupCmController.text),
       photoPath: _photoPath,
       notes: _notesController.text.trim().isEmpty
           ? null

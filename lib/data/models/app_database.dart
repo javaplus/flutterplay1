@@ -23,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(QueryExecutor e) : super(e);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -57,6 +57,11 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(rangeSessions);
         await m.createTable(targets);
         await m.createTable(shotVelocities);
+      }
+      if (from < 7) {
+        // Migration from version 6 to 7: Remove groupSizeCm column from Targets
+        await m.deleteTable('targets');
+        await m.createTable(targets);
       }
     },
   );
@@ -203,7 +208,6 @@ extension TargetExtension on TargetData {
       distance: distance,
       numberOfShots: numberOfShots,
       groupSizeInches: groupSizeInches,
-      groupSizeCm: groupSizeCm,
       groupSizeMoa: groupSizeMoa,
       avgVelocity: avgVelocity,
       standardDeviation: standardDeviation,
@@ -225,7 +229,6 @@ extension TargetCompanionExtension on domain_target.Target {
       distance: Value(distance),
       numberOfShots: Value(numberOfShots),
       groupSizeInches: Value(groupSizeInches),
-      groupSizeCm: Value(groupSizeCm),
       groupSizeMoa: Value(groupSizeMoa),
       avgVelocity: Value(avgVelocity),
       standardDeviation: Value(standardDeviation),
