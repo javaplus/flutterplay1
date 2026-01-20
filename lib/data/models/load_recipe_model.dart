@@ -5,6 +5,7 @@ import 'dart:convert';
 @DataClassName('LoadRecipeData')
 class LoadRecipes extends Table {
   TextColumn get loadId => text()();
+  TextColumn get nickname => text()();
   TextColumn get cartridge => text()();
   RealColumn get bulletWeight => real()();
   TextColumn get bulletType => text()();

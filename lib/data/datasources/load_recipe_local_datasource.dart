@@ -52,7 +52,8 @@ class LoadRecipeLocalDataSource {
     final results = await database.select(database.loadRecipes).get();
 
     final filtered = results.where((data) {
-      return data.cartridge.toLowerCase().contains(lowerQuery) ||
+      return data.nickname.toLowerCase().contains(lowerQuery) ||
+          data.cartridge.toLowerCase().contains(lowerQuery) ||
           data.bulletType.toLowerCase().contains(lowerQuery) ||
           data.powderType.toLowerCase().contains(lowerQuery) ||
           data.primerType.toLowerCase().contains(lowerQuery) ||
