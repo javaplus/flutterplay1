@@ -28,4 +28,19 @@ ENV PATH="$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/pla
 RUN yes | sdkmanager --licenses && \
     sdkmanager "platform-tools"
 
+# Configure bash with git branch in prompt and auto-completion
+RUN echo '\n\
+# Git branch in prompt\n\
+parse_git_branch() {\n\
+    git branch 2> /dev/null | sed -e "/^[^*]/d" -e "s/* \\(.*\\)/(\\1)/"\n\
+}\n\
+\n\
+# Colorful prompt with git branch\n\
+export PS1="\\[\\033[01;32m\\]\\u@\\h\\[\\033[00m\\]:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\[\\033[01;33m\\]\\$(parse_git_branch)\\[\\033[00m\\]\\$ "\n\
+\n\
+# Enable git auto-completion\n\
+if [ -f /usr/share/bash-completion/completions/git ]; then\n\
+    . /usr/share/bash-completion/completions/git\n\
+fi' >> /root/.bashrc
+
 WORKDIR /workspace
