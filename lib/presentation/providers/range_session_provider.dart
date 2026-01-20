@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/datasources/range_session_local_datasource.dart';
 import '../../data/datasources/target_local_datasource.dart';
@@ -174,36 +176,90 @@ class TargetNotifier extends StateNotifier<AsyncValue<void>> {
   /// Update target with velocity statistics
   Future<void> updateTargetVelocityStats(
     String targetId,
-    double avgVelocity,
+    double? avgVelocity,
     double? standardDeviation,
-    double extremeSpread,
+    double? extremeSpread,
   ) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      final target = await repository.getTargetById(targetId);
-      if (target != null) {
-        // Get shot velocities to count them
-        final velocities = await shotVelocityRepository
-            .getShotVelocitiesByTargetId(targetId);
-
-        final updatedTarget = Target(
-          id: target.id,
-          rangeSessionId: target.rangeSessionId,
-          distance: target.distance,
-          numberOfShots: velocities.length, // Auto-update from velocity count
-          groupSizeInches: target.groupSizeInches,
-          groupSizeMoa: target.groupSizeMoa,
-          photoPath: target.photoPath,
-          avgVelocity: avgVelocity,
-          standardDeviation: standardDeviation,
-          extremeSpread: extremeSpread,
-          notes: target.notes,
-          createdAt: target.createdAt,
-          updatedAt: DateTime.now(),
-        );
-        await repository.updateTarget(updatedTarget);
-      }
+      await _writeTargetVelocityStats(
+        targetId,
+        avgVelocity,
+        standardDeviation,
+        extremeSpread,
+      );
     });
+  }
+
+  Future<void> recalcTargetVelocityStats(String targetId) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final velocities = await shotVelocityRepository
+          .getShotVelocitiesByTargetId(targetId);
+
+      double? avgVelocity;
+      double? standardDeviation;
+      double? extremeSpread;
+
+      if (velocities.isNotEmpty) {
+        final values = velocities.map((v) => v.velocity).toList();
+        avgVelocity = values.reduce((a, b) => a + b) / values.length;
+
+        final sorted = List<double>.from(values)..sort();
+        extremeSpread = sorted.length > 1 ? sorted.last - sorted.first : 0.0;
+
+        if (values.length > 1) {
+          final variance =
+              values
+                  .map((v) => math.pow(v - avgVelocity!, 2))
+                  .reduce((a, b) => a + b) /
+              values.length;
+          standardDeviation = math.sqrt(variance);
+        }
+      }
+
+      await _writeTargetVelocityStats(
+        targetId,
+        avgVelocity,
+        standardDeviation,
+        extremeSpread,
+        velocityCount: velocities.length,
+      );
+    });
+  }
+
+  Future<void> _writeTargetVelocityStats(
+    String targetId,
+    double? avgVelocity,
+    double? standardDeviation,
+    double? extremeSpread, {
+    int? velocityCount,
+  }) async {
+    final target = await repository.getTargetById(targetId);
+    if (target != null) {
+      final shotCount =
+          velocityCount ??
+          (await shotVelocityRepository.getShotVelocitiesByTargetId(
+            targetId,
+          )).length;
+
+      final updatedTarget = Target(
+        id: target.id,
+        rangeSessionId: target.rangeSessionId,
+        distance: target.distance,
+        numberOfShots: shotCount,
+        groupSizeInches: target.groupSizeInches,
+        groupSizeMoa: target.groupSizeMoa,
+        photoPath: target.photoPath,
+        avgVelocity: avgVelocity,
+        standardDeviation: standardDeviation,
+        extremeSpread: extremeSpread,
+        notes: target.notes,
+        createdAt: target.createdAt,
+        updatedAt: DateTime.now(),
+      );
+      await repository.updateTarget(updatedTarget);
+    }
   }
 }
 

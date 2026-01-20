@@ -6,6 +6,8 @@ import '../../providers/firearm_provider.dart';
 import '../../providers/load_recipe_provider.dart';
 import '../../providers/shot_velocity_provider.dart';
 import '../../../domain/entities/range_session.dart';
+import '../../../domain/entities/target.dart';
+import '../../../domain/entities/shot_velocity.dart';
 import 'add_range_session_wizard.dart';
 import 'add_target_screen.dart';
 import 'chronograph_camera_screen.dart';
@@ -385,8 +387,8 @@ class RangeSessionDetailScreen extends ConsumerWidget {
 
 /// Reusable target card widget with velocity information
 class _TargetCard extends ConsumerWidget {
-  final target;
-  final session;
+  final Target target;
+  final RangeSession session;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -537,35 +539,58 @@ class _TargetCard extends ConsumerWidget {
                         'ES: ${target.extremeSpread!.toStringAsFixed(1)} fps',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: velocities.take(10).map((v) {
-                        return Chip(
-                          label: Text(
-                            v.velocity.toStringAsFixed(0),
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                          padding: EdgeInsets.zero,
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                          visualDensity: VisualDensity.compact,
-                        );
-                      }).toList(),
-                    ),
-                    if (velocities.length > 10)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          '+ ${velocities.length - 10} more',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Colors.grey[600],
-                                fontStyle: FontStyle.italic,
-                              ),
-                        ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Shots',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
+                    ),
+                    const SizedBox(height: 4),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: velocities.length,
+                      separatorBuilder: (_, __) => const Divider(height: 8),
+                      itemBuilder: (context, index) {
+                        final shot = velocities[index];
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '#${index + 1} • ${shot.velocity.toStringAsFixed(0)} fps',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
+                                  ),
+                                  Text(
+                                    DateFormat(
+                                      'h:mm:ss a',
+                                    ).format(shot.timestamp),
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(color: Colors.grey[600]),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                size: 18,
+                                color: Colors.red,
+                              ),
+                              tooltip: 'Delete shot',
+                              onPressed: () =>
+                                  _confirmDeleteShot(context, ref, shot),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ],
                 );
               },
@@ -602,6 +627,52 @@ class _TargetCard extends ConsumerWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmDeleteShot(
+    BuildContext context,
+    WidgetRef ref,
+    ShotVelocity shot,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Shot'),
+        content: const Text(
+          'Remove this shot velocity from the target? This will update velocity statistics.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final shotNotifier = ref.read(
+                shotVelocityNotifierProvider.notifier,
+              );
+              await shotNotifier.deleteShotVelocity(shot.id);
+
+              await ref
+                  .read(targetNotifierProvider.notifier)
+                  .recalcTargetVelocityStats(target.id);
+
+              ref.invalidate(shotVelocitiesByTargetIdProvider(target.id));
+              ref.invalidate(targetsByRangeSessionIdProvider(session.id));
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Shot removed')));
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }
