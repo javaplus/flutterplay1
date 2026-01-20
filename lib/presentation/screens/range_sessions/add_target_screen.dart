@@ -371,6 +371,11 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
               ChronographCameraScreen(targetId: widget.target!.id),
         ),
       );
+      // Invalidate providers to refresh velocity statistics
+      if (mounted) {
+        ref.invalidate(shotVelocitiesByTargetIdProvider(widget.target!.id));
+        ref.invalidate(targetsByRangeSessionIdProvider(widget.rangeSessionId));
+      }
       return;
     }
 

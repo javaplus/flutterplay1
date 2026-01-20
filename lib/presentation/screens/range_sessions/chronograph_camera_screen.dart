@@ -9,7 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../../domain/entities/shot_velocity.dart';
 import '../../providers/shot_velocity_provider.dart';
-import '../../providers/range_session_provider.dart';
+import '../../providers/range_session_provider.dart' as range_session;
 import 'chronograph_ocr_processor.dart';
 
 /// Screen for capturing velocities from a chronograph using camera OCR
@@ -291,25 +291,37 @@ class _ChronographCameraScreenState
       return;
     }
 
-    // Calculate statistics
+    // Fetch ALL velocities from database (including previously recorded ones)
+    final shotVelocityRepository = ref.read(shotVelocityRepositoryProvider);
+    final allVelocities = await shotVelocityRepository
+        .getShotVelocitiesByTargetId(widget.targetId);
+    final allVelocityValues = allVelocities.map((v) => v.velocity).toList();
+
+    if (allVelocityValues.isEmpty) {
+      _showError('No velocities found in database');
+      return;
+    }
+
+    // Calculate statistics from ALL velocities
     final avgVelocity =
-        _capturedVelocities.reduce((a, b) => a + b) /
-        _capturedVelocities.length;
-    final sortedVelocities = List<double>.from(_capturedVelocities)..sort();
+        allVelocityValues.reduce((a, b) => a + b) / allVelocityValues.length;
+    final sortedVelocities = List<double>.from(allVelocityValues)..sort();
     final extremeSpread = sortedVelocities.last - sortedVelocities.first;
 
     double? standardDeviation;
-    if (_capturedVelocities.length > 1) {
+    if (allVelocityValues.length > 1) {
       final variance =
-          _capturedVelocities
+          allVelocityValues
               .map((v) => math.pow(v - avgVelocity, 2))
               .reduce((a, b) => a + b) /
-          _capturedVelocities.length;
+          allVelocityValues.length;
       standardDeviation = math.sqrt(variance);
     }
 
     // Update the target with velocity statistics
-    final targetNotifier = ref.read(targetNotifierProvider.notifier);
+    final targetNotifier = ref.read(
+      range_session.targetNotifierProvider.notifier,
+    );
     await targetNotifier.updateTargetVelocityStats(
       widget.targetId,
       avgVelocity,
@@ -322,7 +334,7 @@ class _ChronographCameraScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Saved ${_capturedVelocities.length} velocities. Avg: ${avgVelocity.toStringAsFixed(1)} fps',
+            'Saved ${_capturedVelocities.length} new velocities. Total: ${allVelocityValues.length}, Avg: ${avgVelocity.toStringAsFixed(1)} fps',
           ),
         ),
       );
