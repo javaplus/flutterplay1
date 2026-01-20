@@ -93,7 +93,6 @@ class RangeSessionDetailScreen extends ConsumerWidget {
             // Session Information
             _buildSection(context, 'Session Information', [
               _buildInfoRow(context, 'Date', dateFormat.format(session.date)),
-              _buildInfoRow(context, 'Rounds Fired', '${session.roundsFired}'),
               if (session.weather != null && session.weather!.isNotEmpty)
                 _buildInfoRow(context, 'Weather', session.weather!),
             ]),

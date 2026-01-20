@@ -7,7 +7,6 @@ class RangeSessions extends Table {
   DateTimeColumn get date => dateTime()();
   TextColumn get firearmId => text()(); // Foreign key to Firearms
   TextColumn get loadRecipeId => text()(); // Foreign key to LoadRecipes
-  IntColumn get roundsFired => integer()();
   TextColumn get weather => text().nullable()();
   TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();

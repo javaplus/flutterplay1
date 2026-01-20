@@ -5,7 +5,6 @@ class RangeSession {
   final DateTime date;
   final String firearmId; // Foreign key to Firearm
   final String loadRecipeId; // Foreign key to LoadRecipe
-  final int roundsFired;
   final String? weather; // Single text field for weather notes (optional)
   final String? notes;
   final DateTime createdAt;
@@ -16,7 +15,6 @@ class RangeSession {
     required this.date,
     required this.firearmId,
     required this.loadRecipeId,
-    required this.roundsFired,
     this.weather,
     this.notes,
     required this.createdAt,
@@ -29,7 +27,6 @@ class RangeSession {
     DateTime? date,
     String? firearmId,
     String? loadRecipeId,
-    int? roundsFired,
     String? weather,
     String? notes,
     DateTime? createdAt,
@@ -40,7 +37,6 @@ class RangeSession {
       date: date ?? this.date,
       firearmId: firearmId ?? this.firearmId,
       loadRecipeId: loadRecipeId ?? this.loadRecipeId,
-      roundsFired: roundsFired ?? this.roundsFired,
       weather: weather ?? this.weather,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
