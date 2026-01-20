@@ -7,9 +7,6 @@ class RangeSession {
   final String loadRecipeId; // Foreign key to LoadRecipe
   final int roundsFired;
   final String? weather; // Single text field for weather notes (optional)
-  final double? avgVelocity; // Average velocity in fps (nullable)
-  final double? standardDeviation; // SD in fps (nullable)
-  final double? extremeSpread; // ES in fps (nullable)
   final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -21,9 +18,6 @@ class RangeSession {
     required this.loadRecipeId,
     required this.roundsFired,
     this.weather,
-    this.avgVelocity,
-    this.standardDeviation,
-    this.extremeSpread,
     this.notes,
     required this.createdAt,
     required this.updatedAt,
@@ -37,9 +31,6 @@ class RangeSession {
     String? loadRecipeId,
     int? roundsFired,
     String? weather,
-    double? avgVelocity,
-    double? standardDeviation,
-    double? extremeSpread,
     String? notes,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -51,9 +42,6 @@ class RangeSession {
       loadRecipeId: loadRecipeId ?? this.loadRecipeId,
       roundsFired: roundsFired ?? this.roundsFired,
       weather: weather ?? this.weather,
-      avgVelocity: avgVelocity ?? this.avgVelocity,
-      standardDeviation: standardDeviation ?? this.standardDeviation,
-      extremeSpread: extremeSpread ?? this.extremeSpread,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

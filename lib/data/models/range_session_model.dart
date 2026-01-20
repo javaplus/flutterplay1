@@ -9,9 +9,6 @@ class RangeSessions extends Table {
   TextColumn get loadRecipeId => text()(); // Foreign key to LoadRecipes
   IntColumn get roundsFired => integer()();
   TextColumn get weather => text().nullable()();
-  RealColumn get avgVelocity => real().nullable()();
-  RealColumn get standardDeviation => real().nullable()();
-  RealColumn get extremeSpread => real().nullable()();
   TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
@@ -31,6 +28,9 @@ class Targets extends Table {
   RealColumn get groupSizeInches => real().nullable()();
   RealColumn get groupSizeCm => real().nullable()();
   RealColumn get groupSizeMoa => real().nullable()();
+  RealColumn get avgVelocity => real().nullable()();
+  RealColumn get standardDeviation => real().nullable()();
+  RealColumn get extremeSpread => real().nullable()();
   TextColumn get notes => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();

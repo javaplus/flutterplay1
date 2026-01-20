@@ -69,6 +69,32 @@ This is where your target photos and group size calculations come in.
 - Shooter notes (e.g., “pulled shot #3”)
 
 ---
+### **5. Automatic Velocity Reading**
+
+Use the camera to automatically get the velociy of each shot and store that velocity as part of the target data for a range session.  Then calculate the Avg Velocity, Standard Deviation, and Extreme spread.  Keep the individual shot velocities as well.  The camera will be setup to monitor a chronograph's screen that outputs in large numbers each shot's velocity.  Below is a recommended way to implement this.
+
+Implementation:
+(Overview)
+Automatic detection (frame‑difference + digit OCR change + debounce) will reliably capture most shots if you crop to a fixed ROI and apply temporal smoothing; provide a manual “next shot” button as a fallback for edge cases or user confirmation.
+
+(practical recipe)
+- Fixed ROI — crop every frame to the velocity digits area (calibrate once).
+- Frame differencing — compute a simple metric (mean absolute pixel difference or histogram delta) between consecutive cropped frames; large spikes indicate a visual change or flash.
+- OCR check — when a spike occurs, run OCR on the cropped frame and extract digits; compare to the last accepted value. If the digit string differs, treat it as a new shot.
+- Debounce and temporal smoothing — require the new value to persist or appear in N of the next M processed frames (e.g., 3 of 5) before committing, to avoid transient misreads from flicker or motion.
+Why this is robust: frame‑change detectors are lightweight and catch the brief flash; OCR confirms the numeric change so you don’t record false scene changes (e.g., a transient reflection).
+
+(More Implementation details and tuning):
+- Throttle processing to ~5–10 fps for OCR; run OCR in a background isolate to avoid UI jank.
+- Preprocess the ROI: grayscale, contrast boost, adaptive thresholding to reduce glare and improve digit recognition.
+- Debounce rules: ignore changes shorter than 100–300 ms; require repeated OCR matches across frames to accept a value.
+- Edge cases: if OCR fails repeatedly or lighting is poor, show a manual confirm button so the user can accept/reject the detected value.
+
+Summary:
+- Start with automatic detection + debounce + OCR confirmation, add a visible manual override button for any ambiguous reads.
+
+
+---
 
 ### **5. Target & Group Size Data**
 For each target:
