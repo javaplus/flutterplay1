@@ -9,8 +9,6 @@ import '../../../domain/entities/range_session.dart';
 import '../../../domain/entities/target.dart';
 import 'add_range_session_wizard.dart';
 import 'add_target_screen.dart';
-import 'chronograph_camera_screen.dart';
-import 'target_detail_screen.dart';
 
 /// Detail screen for viewing a specific range session
 class RangeSessionDetailScreen extends ConsumerWidget {
@@ -199,11 +197,7 @@ class RangeSessionDetailScreen extends ConsumerWidget {
                           target: target,
                           session: session,
                           onTap: () =>
-                              _navigateToTargetDetail(context, session, target),
-                          onEdit: () =>
                               _navigateToEditTarget(context, session, target),
-                          onDelete: () =>
-                              _confirmDeleteTarget(context, ref, target),
                         ),
                       ),
                     const SizedBox(height: 24),
@@ -349,19 +343,6 @@ class RangeSessionDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _navigateToTargetDetail(
-    BuildContext context,
-    RangeSession session,
-    target,
-  ) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) =>
-            TargetDetailScreen(target: target, session: session),
-      ),
-    );
-  }
-
   void _navigateToEditTarget(
     BuildContext context,
     RangeSession session,
@@ -371,39 +352,6 @@ class RangeSessionDetailScreen extends ConsumerWidget {
       MaterialPageRoute(
         builder: (context) =>
             AddTargetScreen(rangeSessionId: session.id, target: target),
-      ),
-    );
-  }
-
-  void _confirmDeleteTarget(BuildContext context, WidgetRef ref, target) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Target'),
-        content: const Text('Are you sure you want to delete this target?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final notifier = ref.read(targetNotifierProvider.notifier);
-              await notifier.deleteTarget(target.id);
-              ref.invalidate(
-                targetsByRangeSessionIdProvider(target.rangeSessionId),
-              );
-              if (context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Target deleted')));
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
       ),
     );
   }
@@ -491,15 +439,11 @@ class _TargetCard extends ConsumerWidget {
   final Target target;
   final RangeSession session;
   final VoidCallback onTap;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
 
   const _TargetCard({
     required this.target,
     required this.session,
     required this.onTap,
-    required this.onEdit,
-    required this.onDelete,
   });
 
   @override
@@ -550,62 +494,6 @@ class _TargetCard extends ConsumerWidget {
                         ),
                       ),
                     ),
-                  ),
-                  PopupMenuButton(
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'velocities',
-                        child: Row(
-                          children: [
-                            Icon(Icons.speed),
-                            SizedBox(width: 8),
-                            Text('Record Velocities'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit),
-                            SizedBox(width: 8),
-                            Text('Edit'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
-                    onSelected: (value) {
-                      if (value == 'velocities') {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                ChronographCameraScreen(targetId: target.id),
-                          ),
-                        ).then((_) {
-                          ref.invalidate(
-                            shotVelocitiesByTargetIdProvider(target.id),
-                          );
-                          ref.invalidate(
-                            targetsByRangeSessionIdProvider(session.id),
-                          );
-                        });
-                      } else if (value == 'edit') {
-                        onEdit();
-                      } else if (value == 'delete') {
-                        onDelete();
-                      }
-                    },
                   ),
                 ],
               ),
