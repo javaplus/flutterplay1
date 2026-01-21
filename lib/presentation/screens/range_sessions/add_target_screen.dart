@@ -3,10 +3,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../domain/entities/target.dart';
+import '../../../domain/entities/shot_velocity.dart';
 import '../../providers/range_session_provider.dart';
 import '../../providers/shot_velocity_provider.dart';
 import 'chronograph_camera_screen.dart';
@@ -31,6 +33,7 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
 
   String? _photoPath;
   bool _groupSizeFromAnalysis = false;
+  bool _isVelocityListExpanded = false;
 
   @override
   void initState() {
@@ -69,6 +72,12 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
       appBar: AppBar(
         title: Text(isEditing ? 'Edit Target' : 'Add Target'),
         actions: [
+          if (isEditing)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              tooltip: 'Delete Target',
+              onPressed: _confirmDelete,
+            ),
           IconButton(
             icon: const Icon(Icons.check),
             tooltip: isEditing ? 'Update Target' : 'Save Target',
@@ -357,6 +366,25 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
               ),
               const SizedBox(height: 24),
 
+              // Individual Shot Velocities (collapsible, only when editing)
+              if (isEditing && velocitiesAsync != null) ...[
+                velocitiesAsync.when(
+                  data: (velocities) {
+                    if (velocities.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return _buildCollapsibleVelocityList(
+                      context,
+                      ref,
+                      velocities,
+                    );
+                  },
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+                const SizedBox(height: 24),
+              ],
+
               // Notes
               TextFormField(
                 controller: _notesController,
@@ -592,5 +620,284 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
         ),
       );
     }
+  }
+
+  Widget _buildCollapsibleVelocityList(
+    BuildContext context,
+    WidgetRef ref,
+    List<ShotVelocity> velocities,
+  ) {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isVelocityListExpanded = !_isVelocityListExpanded;
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(
+                    _isVelocityListExpanded
+                        ? Icons.expand_less
+                        : Icons.expand_more,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Individual Shot Velocities (${velocities.length})',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_isVelocityListExpanded) ...[
+            const Divider(height: 1),
+            ...List.generate(velocities.length, (index) {
+              final shot = velocities[index];
+              return Column(
+                children: [
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      child: Text(
+                        '${index + 1}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      '${shot.velocity.toStringAsFixed(0)} fps',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      DateFormat('MMM dd, h:mm:ss a').format(shot.timestamp),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          tooltip: 'Edit shot',
+                          onPressed: () =>
+                              _showEditShotDialog(context, ref, shot),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                          ),
+                          tooltip: 'Delete shot',
+                          onPressed: () =>
+                              _confirmDeleteShot(context, ref, shot),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (index < velocities.length - 1) const Divider(height: 1),
+                ],
+              );
+            }),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showEditShotDialog(
+    BuildContext context,
+    WidgetRef ref,
+    ShotVelocity shot,
+  ) {
+    final velocityController = TextEditingController(
+      text: shot.velocity.toStringAsFixed(0),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Shot Velocity'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: velocityController,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Velocity (fps)',
+                border: OutlineInputBorder(),
+                suffixText: 'fps',
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Original: ${shot.velocity.toStringAsFixed(0)} fps',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              velocityController.dispose();
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final newVelocity = double.tryParse(velocityController.text);
+              velocityController.dispose();
+
+              if (newVelocity == null || newVelocity <= 0) {
+                Navigator.pop(context);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid velocity'),
+                    ),
+                  );
+                }
+                return;
+              }
+
+              Navigator.pop(context);
+
+              // Update the shot velocity
+              final updatedShot = shot.copyWith(
+                velocity: newVelocity,
+                updatedAt: DateTime.now(),
+              );
+
+              final shotNotifier = ref.read(
+                shotVelocityNotifierProvider.notifier,
+              );
+              await shotNotifier.updateShotVelocity(updatedShot);
+
+              // Recalculate target statistics
+              await ref
+                  .read(targetNotifierProvider.notifier)
+                  .recalcTargetVelocityStats(widget.target!.id);
+
+              // Refresh the UI
+              ref.invalidate(
+                shotVelocitiesByTargetIdProvider(widget.target!.id),
+              );
+              ref.invalidate(
+                targetsByRangeSessionIdProvider(widget.rangeSessionId),
+              );
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Shot velocity updated')),
+                );
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteShot(
+    BuildContext context,
+    WidgetRef ref,
+    ShotVelocity shot,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Shot'),
+        content: const Text(
+          'Remove this shot velocity from the target? This will update velocity statistics.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final shotNotifier = ref.read(
+                shotVelocityNotifierProvider.notifier,
+              );
+              await shotNotifier.deleteShotVelocity(shot.id);
+
+              await ref
+                  .read(targetNotifierProvider.notifier)
+                  .recalcTargetVelocityStats(widget.target!.id);
+
+              ref.invalidate(
+                shotVelocitiesByTargetIdProvider(widget.target!.id),
+              );
+              ref.invalidate(
+                targetsByRangeSessionIdProvider(widget.rangeSessionId),
+              );
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Shot removed')));
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDelete() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Target'),
+        content: const Text(
+          'Are you sure you want to delete this target and all its shot data?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+              final notifier = ref.read(targetNotifierProvider.notifier);
+              await notifier.deleteTarget(widget.target!.id);
+              ref.invalidate(
+                targetsByRangeSessionIdProvider(widget.rangeSessionId),
+              );
+              if (context.mounted) {
+                Navigator.pop(context); // Return to session
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('Target deleted')));
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 }

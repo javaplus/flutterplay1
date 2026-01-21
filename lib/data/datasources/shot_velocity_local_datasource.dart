@@ -12,12 +12,21 @@ class ShotVelocityLocalDataSource {
   Future<List<domain.ShotVelocity>> getShotVelocitiesByTargetId(
     String targetId,
   ) async {
+    print('🔍 getShotVelocitiesByTargetId called with targetId: $targetId');
     final query = database.select(database.shotVelocities)
       ..where((t) => t.targetId.equals(targetId))
       ..orderBy([
         (t) => OrderingTerm(expression: t.timestamp, mode: OrderingMode.asc),
       ]);
     final results = await query.get();
+    print('📊 Query returned ${results.length} results');
+    if (results.isNotEmpty) {
+      for (var result in results) {
+        print(
+          '  - Shot: id=${result.shotId}, targetId=${result.targetId}, velocity=${result.velocity}',
+        );
+      }
+    }
     return results.map((data) => data.toEntity()).toList();
   }
 
@@ -31,9 +40,19 @@ class ShotVelocityLocalDataSource {
 
   /// Add a new shot velocity
   Future<void> addShotVelocity(domain.ShotVelocity shotVelocity) async {
-    await database
-        .into(database.shotVelocities)
-        .insert(shotVelocity.toCompanion());
+    print(
+      '💾 addShotVelocity called: id=${shotVelocity.id}, targetId=${shotVelocity.targetId}, velocity=${shotVelocity.velocity}',
+    );
+    try {
+      await database
+          .into(database.shotVelocities)
+          .insert(shotVelocity.toCompanion());
+      print('✅ Shot velocity inserted successfully');
+    } catch (e, stackTrace) {
+      print('❌ Error inserting shot velocity: $e');
+      print('Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   /// Add multiple shot velocities

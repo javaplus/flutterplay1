@@ -146,7 +146,7 @@ class _ChronographCameraScreenState
 
     // Listen to velocity stream
     _velocitySubscription = _ocrProcessor!.velocityStream.listen(
-      (velocity) {
+      (velocity) async {
         if (kDebugMode) {
           print('📥 Received velocity from stream: $velocity fps');
         }
@@ -154,7 +154,7 @@ class _ChronographCameraScreenState
           _capturedVelocities.add(velocity);
         });
 
-        _saveVelocityToDatabase(velocity);
+        await _saveVelocityToDatabase(velocity);
 
         // Haptic feedback
         if (mounted) {
@@ -235,14 +235,16 @@ class _ChronographCameraScreenState
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 final velocity = double.tryParse(controller.text);
                 if (velocity != null) {
                   setState(() {
                     _capturedVelocities.add(velocity);
                   });
-                  _saveVelocityToDatabase(velocity);
-                  Navigator.pop(context);
+                  await _saveVelocityToDatabase(velocity);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Invalid velocity')),
@@ -267,8 +269,18 @@ class _ChronographCameraScreenState
       updatedAt: DateTime.now(),
     );
 
+    if (kDebugMode) {
+      print(
+        '💾 Saving velocity to database: id=${shotVelocity.id}, targetId=${shotVelocity.targetId}, velocity=${shotVelocity.velocity}',
+      );
+    }
+
     final notifier = ref.read(shotVelocityNotifierProvider.notifier);
     await notifier.addShotVelocity(shotVelocity);
+
+    if (kDebugMode) {
+      print('✅ Velocity saved successfully');
+    }
   }
 
   void _deleteVelocity(int index) {
