@@ -22,9 +22,28 @@ class TargetDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    debugPrint('\n' + '=' * 80);
+    debugPrint('🎯 TargetDetailScreen.build() called');
+    debugPrint('   Target ID: ${target.id}');
+    debugPrint('   Target distance: ${target.distance}');
+    debugPrint('   Target shots: ${target.numberOfShots}');
+
     final velocitiesAsync = ref.watch(
       shotVelocitiesByTargetIdProvider(target.id),
     );
+
+    debugPrint('📦 velocitiesAsync type: ${velocitiesAsync.runtimeType}');
+    debugPrint('📦 velocitiesAsync.isLoading: ${velocitiesAsync.isLoading}');
+    debugPrint('📦 velocitiesAsync.hasValue: ${velocitiesAsync.hasValue}');
+    debugPrint('📦 velocitiesAsync.hasError: ${velocitiesAsync.hasError}');
+    if (velocitiesAsync.hasValue) {
+      debugPrint(
+        '📦 velocitiesAsync.value.length: ${velocitiesAsync.value?.length}',
+      );
+    }
+    if (velocitiesAsync.hasError) {
+      debugPrint('❌ velocitiesAsync.error: ${velocitiesAsync.error}');
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -72,9 +91,32 @@ class TargetDetailScreen extends ConsumerWidget {
               // Velocity Statistics
               velocitiesAsync.when(
                 data: (velocities) {
+                  debugPrint('✅ velocitiesAsync.when(data) called');
+                  debugPrint('   Velocities count: ${velocities.length}');
+                  if (velocities.isNotEmpty) {
+                    debugPrint(
+                      '   First velocity: ${velocities.first.velocity} fps',
+                    );
+                    debugPrint(
+                      '   First velocity targetId: ${velocities.first.targetId}',
+                    );
+                  }
+
                   if (velocities.isEmpty) {
+                    debugPrint(
+                      '⚠️ Velocities list is EMPTY, showing empty state',
+                    );
                     return _buildEmptyVelocityState(context);
                   }
+
+                  debugPrint('✅ Building velocity statistics section');
+                  debugPrint('   target.avgVelocity: ${target.avgVelocity}');
+                  debugPrint(
+                    '   target.standardDeviation: ${target.standardDeviation}',
+                  );
+                  debugPrint(
+                    '   target.extremeSpread: ${target.extremeSpread}',
+                  );
 
                   return Column(
                     children: [
@@ -110,8 +152,16 @@ class TargetDetailScreen extends ConsumerWidget {
                     ],
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => _buildEmptyVelocityState(context),
+                loading: () {
+                  debugPrint('⏳ velocitiesAsync.when(loading) called');
+                  return const Center(child: CircularProgressIndicator());
+                },
+                error: (err, stack) {
+                  debugPrint('❌ velocitiesAsync.when(error) called');
+                  debugPrint('   Error: $err');
+                  debugPrint('   Stack trace: $stack');
+                  return _buildEmptyVelocityState(context);
+                },
               ),
 
               // Notes
@@ -224,11 +274,25 @@ class TargetDetailScreen extends ConsumerWidget {
     WidgetRef ref,
     List<ShotVelocity> velocities,
   ) {
+    debugPrint('\n🔍 _buildShotVelocitiesList called');
+    debugPrint('   Velocities count: ${velocities.length}');
+
+    if (velocities.isEmpty) {
+      debugPrint('⚠️ Velocities list is EMPTY in _buildShotVelocitiesList');
+    } else {
+      debugPrint('✅ Building list of ${velocities.length} velocities');
+      for (var i = 0; i < velocities.length; i++) {
+        debugPrint(
+          '   Shot ${i + 1}: ${velocities[i].velocity} fps (id: ${velocities[i].id})',
+        );
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Individual Shot Velocities',
+          'Individual Shot Velocities (${velocities.length})',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.bold,
             color: Theme.of(context).colorScheme.primary,
@@ -236,45 +300,76 @@ class TargetDetailScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         Card(
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: velocities.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final shot = velocities[index];
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  child: Text(
-                    '${index + 1}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+          child: velocities.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('No shots to display'),
+                )
+              : Column(
+                  children: List.generate(velocities.length, (index) {
+                    final shot = velocities[index];
+                    debugPrint(
+                      '📊 Building shot #${index + 1}: ${shot.velocity} fps',
+                    );
+
+                    return Column(
+                      children: [
+                        ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
+                            child: Text(
+                              '${index + 1}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            '${shot.velocity.toStringAsFixed(0)} fps',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            DateFormat(
+                              'MMM dd, h:mm:ss a',
+                            ).format(shot.timestamp),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined),
+                                tooltip: 'Edit shot',
+                                onPressed: () =>
+                                    _showEditShotDialog(context, ref, shot),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.red,
+                                ),
+                                tooltip: 'Delete shot',
+                                onPressed: () =>
+                                    _confirmDeleteShot(context, ref, shot),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (index < velocities.length - 1)
+                          const Divider(height: 1),
+                      ],
+                    );
+                  }),
                 ),
-                title: Text(
-                  '${shot.velocity.toStringAsFixed(0)} fps',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                subtitle: Text(
-                  DateFormat('MMM dd, h:mm:ss a').format(shot.timestamp),
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  tooltip: 'Delete shot',
-                  onPressed: () => _confirmDeleteShot(context, ref, shot),
-                ),
-              );
-            },
-          ),
         ),
       ],
     );
   }
 
   Widget _buildEmptyVelocityState(BuildContext context) {
+    debugPrint('🔴 _buildEmptyVelocityState called - showing empty state UI');
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -314,6 +409,8 @@ class TargetDetailScreen extends ConsumerWidget {
   }
 
   void _navigateToRecordVelocities(BuildContext context, WidgetRef ref) {
+    debugPrint('\n📍 Navigating to ChronographCameraScreen');
+    debugPrint('   Target ID: ${target.id}');
     Navigator.of(context)
         .push(
           MaterialPageRoute(
@@ -321,9 +418,18 @@ class TargetDetailScreen extends ConsumerWidget {
           ),
         )
         .then((_) {
-          // Refresh the velocities after recording
+          debugPrint(
+            '\n🔄 Returned from ChronographCameraScreen - invalidating providers',
+          );
+          debugPrint(
+            '   Invalidating shotVelocitiesByTargetIdProvider(${target.id})',
+          );
           ref.invalidate(shotVelocitiesByTargetIdProvider(target.id));
+          debugPrint(
+            '   Invalidating targetsByRangeSessionIdProvider(${session.id})',
+          );
           ref.invalidate(targetsByRangeSessionIdProvider(session.id));
+          debugPrint('🔄 Providers invalidated, screen should rebuild');
         });
   }
 
@@ -357,6 +463,101 @@ class TargetDetailScreen extends ConsumerWidget {
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditShotDialog(
+    BuildContext context,
+    WidgetRef ref,
+    ShotVelocity shot,
+  ) {
+    final velocityController = TextEditingController(
+      text: shot.velocity.toStringAsFixed(0),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Shot Velocity'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: velocityController,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Velocity (fps)',
+                border: OutlineInputBorder(),
+                suffixText: 'fps',
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Original: ${shot.velocity.toStringAsFixed(0)} fps',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              velocityController.dispose();
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final newVelocity = double.tryParse(velocityController.text);
+              velocityController.dispose();
+
+              if (newVelocity == null || newVelocity <= 0) {
+                Navigator.pop(context);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid velocity'),
+                    ),
+                  );
+                }
+                return;
+              }
+
+              Navigator.pop(context);
+
+              // Update the shot velocity
+              final updatedShot = shot.copyWith(
+                velocity: newVelocity,
+                updatedAt: DateTime.now(),
+              );
+
+              final shotNotifier = ref.read(
+                shotVelocityNotifierProvider.notifier,
+              );
+              await shotNotifier.updateShotVelocity(updatedShot);
+
+              // Recalculate target statistics
+              await ref
+                  .read(targetNotifierProvider.notifier)
+                  .recalcTargetVelocityStats(target.id);
+
+              // Refresh the UI
+              ref.invalidate(shotVelocitiesByTargetIdProvider(target.id));
+              ref.invalidate(targetsByRangeSessionIdProvider(session.id));
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Shot velocity updated')),
+                );
+              }
+            },
+            child: const Text('Save'),
           ),
         ],
       ),
