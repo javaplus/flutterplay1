@@ -38,6 +38,10 @@ class _TargetPhotoAnalysisScreenState extends State<TargetPhotoAnalysisScreen> {
   void initState() {
     super.initState();
     _loadImage();
+    // Listen to text field changes to update button state
+    _referenceDistanceController.addListener(() {
+      setState(() {});
+    });
   }
 
   @override
