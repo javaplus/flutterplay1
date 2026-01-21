@@ -110,14 +110,13 @@ For each target:
 ## Features Your App Should Include
 
 ### **1. Target Photo Analysis**
-This is the feature you hinted at, and it’s a great one.
+Under Range Session after shooting a target
 - User takes a photo of the target
-- App detects bullet holes (or user taps them)
+- user marks holes
 - User sets reference scale (e.g., a quarter, a ruler, or known target grid)
 - App calculates:
-  - Extreme spread
   - Group center
-  - MOA at given distance
+  - Group size
 
 ---
 
