@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../domain/entities/target.dart';
 import '../../providers/range_session_provider.dart';
@@ -64,7 +66,16 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
         : null;
 
     return Scaffold(
-      appBar: AppBar(title: Text(isEditing ? 'Edit Target' : 'Add Target')),
+      appBar: AppBar(
+        title: Text(isEditing ? 'Edit Target' : 'Add Target'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.check),
+            tooltip: isEditing ? 'Update Target' : 'Save Target',
+            onPressed: _saveTarget,
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -358,19 +369,9 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
                 ),
                 maxLines: 4,
               ),
-              const SizedBox(height: 24),
-
-              // Save button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _saveTarget,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(isEditing ? 'Update Target' : 'Save Target'),
-                  ),
-                ),
-              ),
+              const SizedBox(
+                height: 100,
+              ), // Extra padding for bottom navigation
             ],
           ),
         ),
@@ -382,11 +383,28 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
     final picker = ImagePicker();
     final photo = await picker.pickImage(source: ImageSource.camera);
     if (photo != null) {
+      // Copy to permanent storage
+      final permanentPath = await _savePhotoToStorage(photo.path);
       setState(() {
-        _photoPath = photo.path;
+        _photoPath = permanentPath;
         _groupSizeFromAnalysis = false;
       });
     }
+  }
+
+  Future<String> _savePhotoToStorage(String tempPath) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final targetPhotosDir = Directory('${appDir.path}/target_photos');
+    if (!await targetPhotosDir.exists()) {
+      await targetPhotosDir.create(recursive: true);
+    }
+
+    final fileName = '${const Uuid().v4()}${path.extension(tempPath)}';
+    final permanentPath = '${targetPhotosDir.path}/$fileName';
+    final tempFile = File(tempPath);
+    await tempFile.copy(permanentPath);
+
+    return permanentPath;
   }
 
   Future<void> _analyzePhoto() async {
