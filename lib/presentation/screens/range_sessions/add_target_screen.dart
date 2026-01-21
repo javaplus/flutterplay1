@@ -1,12 +1,16 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../domain/entities/target.dart';
 import '../../providers/range_session_provider.dart';
 import '../../providers/shot_velocity_provider.dart';
 import 'chronograph_camera_screen.dart';
+import 'target_photo_analysis_screen.dart';
 
 /// Screen for adding or editing a target
 class AddTargetScreen extends ConsumerStatefulWidget {
@@ -26,6 +30,7 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
   final _notesController = TextEditingController();
 
   String? _photoPath;
+  bool _groupSizeFromAnalysis = false;
 
   @override
   void initState() {
@@ -61,7 +66,16 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
         : null;
 
     return Scaffold(
-      appBar: AppBar(title: Text(isEditing ? 'Edit Target' : 'Add Target')),
+      appBar: AppBar(
+        title: Text(isEditing ? 'Edit Target' : 'Add Target'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.check),
+            tooltip: isEditing ? 'Update Target' : 'Save Target',
+            onPressed: _saveTarget,
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -246,27 +260,74 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
 
               if (_photoPath != null) ...[
                 Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.photo),
-                    title: const Text('Photo selected'),
-                    subtitle: Text(_photoPath!.split('/').last),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () {
-                        setState(() {
-                          _photoPath = null;
-                        });
-                      },
-                    ),
+                  child: Column(
+                    children: [
+                      // Display the photo
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(4),
+                        ),
+                        child: Image.file(
+                          File(_photoPath!),
+                          height: 200,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.photo),
+                        title: const Text('Target photo'),
+                        subtitle: _groupSizeFromAnalysis
+                            ? const Text('Group size calculated from photo')
+                            : null,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (_groupSizeFromAnalysis)
+                              const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                              ),
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () {
+                                setState(() {
+                                  _photoPath = null;
+                                  _groupSizeFromAnalysis = false;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 16),
               ],
 
-              OutlinedButton.icon(
-                onPressed: _pickPhoto,
-                icon: const Icon(Icons.camera_alt),
-                label: Text(_photoPath == null ? 'Take Photo' : 'Change Photo'),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _pickPhoto,
+                      icon: const Icon(Icons.camera_alt),
+                      label: Text(
+                        _photoPath == null ? 'Take Photo' : 'Change Photo',
+                      ),
+                    ),
+                  ),
+                  if (_photoPath != null) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _analyzePhoto,
+                        icon: const Icon(Icons.analytics),
+                        label: const Text('Analyze'),
+                      ),
+                    ),
+                  ],
+                ],
               ),
               const SizedBox(height: 24),
 
@@ -308,19 +369,9 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
                 ),
                 maxLines: 4,
               ),
-              const SizedBox(height: 24),
-
-              // Save button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _saveTarget,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(isEditing ? 'Update Target' : 'Save Target'),
-                  ),
-                ),
-              ),
+              const SizedBox(
+                height: 100,
+              ), // Extra padding for bottom navigation
             ],
           ),
         ),
@@ -332,9 +383,60 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
     final picker = ImagePicker();
     final photo = await picker.pickImage(source: ImageSource.camera);
     if (photo != null) {
+      // Copy to permanent storage
+      final permanentPath = await _savePhotoToStorage(photo.path);
       setState(() {
-        _photoPath = photo.path;
+        _photoPath = permanentPath;
+        _groupSizeFromAnalysis = false;
       });
+    }
+  }
+
+  Future<String> _savePhotoToStorage(String tempPath) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final targetPhotosDir = Directory('${appDir.path}/target_photos');
+    if (!await targetPhotosDir.exists()) {
+      await targetPhotosDir.create(recursive: true);
+    }
+
+    final fileName = '${const Uuid().v4()}${path.extension(tempPath)}';
+    final permanentPath = '${targetPhotosDir.path}/$fileName';
+    final tempFile = File(tempPath);
+    await tempFile.copy(permanentPath);
+
+    return permanentPath;
+  }
+
+  Future<void> _analyzePhoto() async {
+    if (_photoPath == null) return;
+
+    final result = await Navigator.push<TargetAnalysisResult>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TargetPhotoAnalysisScreen(
+          photoPath: _photoPath!,
+          onAnalysisComplete: (result) {
+            // This callback is called in the analysis screen
+          },
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _groupInchesController.text = result.groupSizeInches.toStringAsFixed(3);
+        _groupSizeFromAnalysis = true;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Analysis complete: ${result.numberOfShots} shots, '
+            '${result.groupSizeInches.toStringAsFixed(3)}" group',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
     }
   }
 
