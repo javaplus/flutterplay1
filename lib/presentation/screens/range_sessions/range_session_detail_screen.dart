@@ -7,10 +7,10 @@ import '../../providers/load_recipe_provider.dart';
 import '../../providers/shot_velocity_provider.dart';
 import '../../../domain/entities/range_session.dart';
 import '../../../domain/entities/target.dart';
-import '../../../domain/entities/shot_velocity.dart';
 import 'add_range_session_wizard.dart';
 import 'add_target_screen.dart';
 import 'chronograph_camera_screen.dart';
+import 'target_detail_screen.dart';
 
 /// Detail screen for viewing a specific range session
 class RangeSessionDetailScreen extends ConsumerWidget {
@@ -151,6 +151,15 @@ class RangeSessionDetailScreen extends ConsumerWidget {
               error: (_, __) => const SizedBox.shrink(),
             ),
 
+            // Overall Velocity Statistics
+            targetsAsync.when(
+              data: (targets) {
+                return _buildOverallVelocityStats(context, ref, targets);
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+
             // Targets
             targetsAsync.when(
               data: (targets) {
@@ -189,6 +198,8 @@ class RangeSessionDetailScreen extends ConsumerWidget {
                         (target) => _TargetCard(
                           target: target,
                           session: session,
+                          onTap: () =>
+                              _navigateToTargetDetail(context, session, target),
                           onEdit: () =>
                               _navigateToEditTarget(context, session, target),
                           onDelete: () =>
@@ -338,6 +349,19 @@ class RangeSessionDetailScreen extends ConsumerWidget {
     );
   }
 
+  void _navigateToTargetDetail(
+    BuildContext context,
+    RangeSession session,
+    target,
+  ) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            TargetDetailScreen(target: target, session: session),
+      ),
+    );
+  }
+
   void _navigateToEditTarget(
     BuildContext context,
     RangeSession session,
@@ -383,18 +407,97 @@ class RangeSessionDetailScreen extends ConsumerWidget {
       ),
     );
   }
+
+  Widget _buildOverallVelocityStats(
+    BuildContext context,
+    WidgetRef ref,
+    List<Target> targets,
+  ) {
+    if (targets.isEmpty) return const SizedBox.shrink();
+
+    // Collect all velocities from all targets
+    List<double> allVelocities = [];
+    int totalShots = 0;
+
+    for (final target in targets) {
+      final velocitiesAsync = ref.watch(
+        shotVelocitiesByTargetIdProvider(target.id),
+      );
+      velocitiesAsync.whenData((velocities) {
+        allVelocities.addAll(velocities.map((v) => v.velocity));
+        totalShots += velocities.length;
+      });
+    }
+
+    if (allVelocities.isEmpty) return const SizedBox.shrink();
+
+    // Calculate overall statistics
+    final avgVelocity =
+        allVelocities.reduce((a, b) => a + b) / allVelocities.length;
+    final minVelocity = allVelocities.reduce((a, b) => a < b ? a : b);
+    final maxVelocity = allVelocities.reduce((a, b) => a > b ? a : b);
+    final extremeSpread = maxVelocity - minVelocity;
+
+    // Calculate standard deviation
+    double calculateSD() {
+      if (allVelocities.length < 2) return 0.0;
+      final sumSquaredDiff = allVelocities
+          .map((v) => (v - avgVelocity) * (v - avgVelocity))
+          .reduce((a, b) => a + b);
+      final variance = sumSquaredDiff / (allVelocities.length - 1);
+      return variance.sqrt();
+    }
+
+    final standardDeviation = calculateSD();
+
+    return Column(
+      children: [
+        _buildSection(context, 'Overall Velocity Statistics', [
+          _buildInfoRow(context, 'Total Shots', '$totalShots'),
+          _buildInfoRow(
+            context,
+            'Average Velocity',
+            '${avgVelocity.toStringAsFixed(1)} fps',
+          ),
+          _buildInfoRow(
+            context,
+            'Standard Deviation',
+            '${standardDeviation.toStringAsFixed(2)} fps',
+          ),
+          _buildInfoRow(
+            context,
+            'Extreme Spread',
+            '${extremeSpread.toStringAsFixed(1)} fps',
+          ),
+          _buildInfoRow(
+            context,
+            'Min Velocity',
+            '${minVelocity.toStringAsFixed(0)} fps',
+          ),
+          _buildInfoRow(
+            context,
+            'Max Velocity',
+            '${maxVelocity.toStringAsFixed(0)} fps',
+          ),
+        ]),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
 }
 
 /// Reusable target card widget with velocity information
 class _TargetCard extends ConsumerWidget {
   final Target target;
   final RangeSession session;
+  final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _TargetCard({
     required this.target,
     required this.session,
+    required this.onTap,
     required this.onEdit,
     required this.onDelete,
   });
@@ -407,273 +510,325 @@ class _TargetCard extends ConsumerWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header row with basic info and menu
-            Row(
-              children: [
-                Icon(
-                  Icons.filter_center_focus,
-                  size: 16,
-                  color: Colors.grey[600],
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: velocitiesAsync.when(
-                    data: (velocities) {
-                      final shotCount = velocities.length;
-                      return Text(
-                        '${target.distance} yards • ${shotCount > 0 ? shotCount : target.numberOfShots} shots',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header row with basic info and menu
+              Row(
+                children: [
+                  Icon(
+                    Icons.filter_center_focus,
+                    size: 16,
+                    color: Colors.grey[600],
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: velocitiesAsync.when(
+                      data: (velocities) {
+                        final shotCount = velocities.length;
+                        return Text(
+                          '${target.distance} yards • ${shotCount > 0 ? shotCount : target.numberOfShots} shots',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        );
+                      },
+                      loading: () => Text(
+                        '${target.distance} yards • ${target.numberOfShots} shots',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
-                      );
-                    },
-                    loading: () => Text(
-                      '${target.distance} yards • ${target.numberOfShots} shots',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
                       ),
-                    ),
-                    error: (_, __) => Text(
-                      '${target.distance} yards • ${target.numberOfShots} shots',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      error: (_, __) => Text(
+                        '${target.distance} yards • ${target.numberOfShots} shots',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                PopupMenuButton(
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'velocities',
-                      child: Row(
-                        children: [
-                          Icon(Icons.speed),
-                          SizedBox(width: 8),
-                          Text('Record Velocities'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit),
-                          SizedBox(width: 8),
-                          Text('Edit'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Delete', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
-                  onSelected: (value) {
-                    if (value == 'velocities') {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ChronographCameraScreen(targetId: target.id),
-                        ),
-                      ).then((_) {
-                        ref.invalidate(
-                          shotVelocitiesByTargetIdProvider(target.id),
-                        );
-                        ref.invalidate(
-                          targetsByRangeSessionIdProvider(session.id),
-                        );
-                      });
-                    } else if (value == 'edit') {
-                      onEdit();
-                    } else if (value == 'delete') {
-                      onDelete();
-                    }
-                  },
-                ),
-              ],
-            ),
-
-            // Group size
-            if (target.groupSizeInches != null ||
-                target.groupSizeMoa != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                'Group: ${target.groupSizeInches != null ? "${target.groupSizeInches!.toStringAsFixed(3)}\"" : ""} ${target.groupSizeMoa != null ? "(${target.groupSizeMoa!.toStringAsFixed(2)} MOA)" : ""}',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-
-            // Velocity statistics
-            velocitiesAsync.when(
-              data: (velocities) {
-                if (velocities.isEmpty) return const SizedBox.shrink();
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
-                    if (target.avgVelocity != null)
-                      Text(
-                        'Avg Velocity: ${target.avgVelocity!.toStringAsFixed(1)} fps',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    if (target.standardDeviation != null)
-                      Text(
-                        'SD: ${target.standardDeviation!.toStringAsFixed(2)} fps',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    if (target.extremeSpread != null)
-                      Text(
-                        'ES: ${target.extremeSpread!.toStringAsFixed(1)} fps',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Shots',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: velocities.length,
-                      separatorBuilder: (_, __) => const Divider(height: 8),
-                      itemBuilder: (context, index) {
-                        final shot = velocities[index];
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                  PopupMenuButton(
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'velocities',
+                        child: Row(
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '#${index + 1} • ${shot.velocity.toStringAsFixed(0)} fps',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium,
-                                  ),
-                                  Text(
-                                    DateFormat(
-                                      'h:mm:ss a',
-                                    ).format(shot.timestamp),
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(color: Colors.grey[600]),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.delete_outline,
-                                size: 18,
-                                color: Colors.red,
-                              ),
-                              tooltip: 'Delete shot',
-                              onPressed: () =>
-                                  _confirmDeleteShot(context, ref, shot),
-                            ),
+                            Icon(Icons.speed),
+                            SizedBox(width: 8),
+                            Text('Record Velocities'),
                           ],
-                        );
-                      },
-                    ),
-                  ],
-                );
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-
-            // Notes
-            if (target.notes != null && target.notes!.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                target.notes!,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
-              ),
-            ],
-
-            // Photo indicator
-            if (target.photoPath != null) ...[
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(Icons.photo, size: 14, color: Colors.grey[600]),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Photo attached',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit),
+                            SizedBox(width: 8),
+                            Text('Edit'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Delete', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onSelected: (value) {
+                      if (value == 'velocities') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ChronographCameraScreen(targetId: target.id),
+                          ),
+                        ).then((_) {
+                          ref.invalidate(
+                            shotVelocitiesByTargetIdProvider(target.id),
+                          );
+                          ref.invalidate(
+                            targetsByRangeSessionIdProvider(session.id),
+                          );
+                        });
+                      } else if (value == 'edit') {
+                        onEdit();
+                      } else if (value == 'delete') {
+                        onDelete();
+                      }
+                    },
                   ),
                 ],
               ),
+
+              const SizedBox(height: 12),
+
+              // Target Statistics Section
+              velocitiesAsync.when(
+                data: (velocities) {
+                  return _buildTargetStatistics(context, target, velocities);
+                },
+                loading: () => _buildLoadingStatistics(context),
+                error: (_, __) => _buildEmptyStatistics(context),
+              ),
+
+              // Notes
+              if (target.notes != null && target.notes!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  target.notes!,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                ),
+              ],
+
+              // Photo indicator
+              if (target.photoPath != null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.photo, size: 14, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Photo attached',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 
-  void _confirmDeleteShot(
+  Widget _buildTargetStatistics(
     BuildContext context,
-    WidgetRef ref,
-    ShotVelocity shot,
+    Target target,
+    List<dynamic> velocities,
   ) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Shot'),
-        content: const Text(
-          'Remove this shot velocity from the target? This will update velocity statistics.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+    // Calculate statistics from velocities
+    final List<double> velocityValues = velocities
+        .map((v) => v.velocity as double)
+        .toList();
+
+    if (velocityValues.isEmpty) {
+      return _buildEmptyStatistics(context);
+    }
+
+    final avgVelocity =
+        velocityValues.reduce((a, b) => a + b) / velocityValues.length;
+    final minVelocity = velocityValues.reduce((a, b) => a < b ? a : b);
+    final maxVelocity = velocityValues.reduce((a, b) => a > b ? a : b);
+    final extremeSpread = maxVelocity - minVelocity;
+
+    double calculateSD() {
+      if (velocityValues.length < 2) return 0.0;
+      final sumSquaredDiff = velocityValues
+          .map((v) => (v - avgVelocity) * (v - avgVelocity))
+          .reduce((a, b) => a + b);
+      final variance = sumSquaredDiff / (velocityValues.length - 1);
+      return variance.sqrt();
+    }
+
+    final standardDeviation = calculateSD();
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Target Statistics',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: Colors.blue[900],
+            ),
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final shotNotifier = ref.read(
-                shotVelocityNotifierProvider.notifier,
-              );
-              await shotNotifier.deleteShotVelocity(shot.id);
-
-              await ref
-                  .read(targetNotifierProvider.notifier)
-                  .recalcTargetVelocityStats(target.id);
-
-              ref.invalidate(shotVelocitiesByTargetIdProvider(target.id));
-              ref.invalidate(targetsByRangeSessionIdProvider(session.id));
-
-              if (context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Shot removed')));
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+          const SizedBox(height: 8),
+          _buildStatRow(context, 'Shots Recorded', '${velocityValues.length}'),
+          if (target.groupSizeInches != null)
+            _buildStatRow(
+              context,
+              'Group Size',
+              '${target.groupSizeInches!.toStringAsFixed(3)}"',
+            ),
+          if (target.groupSizeMoa != null)
+            _buildStatRow(
+              context,
+              'Group Size (MOA)',
+              '${target.groupSizeMoa!.toStringAsFixed(2)} MOA',
+            ),
+          const Divider(height: 16),
+          Text(
+            'Velocity Data',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: Colors.blue[900],
+            ),
+          ),
+          const SizedBox(height: 4),
+          _buildStatRow(
+            context,
+            'Average',
+            '${avgVelocity.toStringAsFixed(1)} fps',
+          ),
+          _buildStatRow(
+            context,
+            'Std Deviation',
+            '${standardDeviation.toStringAsFixed(2)} fps',
+          ),
+          _buildStatRow(
+            context,
+            'Extreme Spread',
+            '${extremeSpread.toStringAsFixed(1)} fps',
+          ),
+          _buildStatRow(
+            context,
+            'Min / Max',
+            '${minVelocity.toStringAsFixed(0)} / ${maxVelocity.toStringAsFixed(0)} fps',
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildEmptyStatistics(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.speed_outlined, size: 20, color: Colors.grey[500]),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'No velocity data recorded yet',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingStatistics(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: const Center(
+        child: SizedBox(
+          height: 20,
+          width: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatRow(BuildContext context, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
+          ),
+          Text(
+            value,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Helper extension for better sqrt calculation
+extension DoubleExt on double {
+  double sqrt() {
+    if (this <= 0) return 0.0;
+    double x = this;
+    double y = 1.0;
+    double e = 0.000001;
+    while (x - y > e) {
+      x = (x + y) / 2;
+      y = this / x;
+    }
+    return x;
   }
 }
