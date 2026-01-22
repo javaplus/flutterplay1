@@ -170,7 +170,7 @@ class _AddEditLoadRecipeWizardState
 
   Widget _buildStep1CartridgeAndBullet() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -285,7 +285,7 @@ class _AddEditLoadRecipeWizardState
 
   Widget _buildStep2PowderAndPrimer() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -372,7 +372,7 @@ class _AddEditLoadRecipeWizardState
 
   Widget _buildStep3BrassAndDimensions() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -492,7 +492,7 @@ class _AddEditLoadRecipeWizardState
 
   Widget _buildStep4PressureAndNotes() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -569,35 +569,38 @@ class _AddEditLoadRecipeWizardState
     final isLastStep = _currentStep == _totalSteps - 1;
     final isFirstStep = _currentStep == 0;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          if (!isFirstStep)
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 4,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            if (!isFirstStep)
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _previousStep,
+                  child: const Text('Back'),
+                ),
+              ),
+            if (!isFirstStep) const SizedBox(width: 16),
             Expanded(
-              child: OutlinedButton(
-                onPressed: _previousStep,
-                child: const Text('Back'),
+              child: ElevatedButton(
+                onPressed: isLastStep ? _saveLoadRecipe : _nextStep,
+                child: Text(isLastStep ? 'Save' : 'Next'),
               ),
             ),
-          if (!isFirstStep) const SizedBox(width: 16),
-          Expanded(
-            child: ElevatedButton(
-              onPressed: isLastStep ? _saveLoadRecipe : _nextStep,
-              child: Text(isLastStep ? 'Save' : 'Next'),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

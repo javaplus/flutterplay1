@@ -69,6 +69,7 @@ class FirearmDetailScreen extends ConsumerWidget {
 
   Widget _buildDetailView(BuildContext context, Firearm firearm) {
     return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
