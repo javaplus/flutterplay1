@@ -159,7 +159,7 @@ class _AddEditFirearmWizardState extends ConsumerState<AddEditFirearmWizard> {
 
   Widget _buildStep1BasicInfo() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -269,7 +269,7 @@ class _AddEditFirearmWizardState extends ConsumerState<AddEditFirearmWizard> {
 
   Widget _buildStep2BarrelSpecs() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -353,7 +353,7 @@ class _AddEditFirearmWizardState extends ConsumerState<AddEditFirearmWizard> {
 
   Widget _buildStep3AdditionalInfo() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -463,38 +463,41 @@ class _AddEditFirearmWizardState extends ConsumerState<AddEditFirearmWizard> {
   }
 
   Widget _buildNavigationButtons() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          if (_currentStep > 0)
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 4,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            if (_currentStep > 0)
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _previousStep,
+                  child: const Text('Back'),
+                ),
+              ),
+            if (_currentStep > 0) const SizedBox(width: 16),
             Expanded(
-              child: OutlinedButton(
-                onPressed: _previousStep,
-                child: const Text('Back'),
+              flex: 2,
+              child: FilledButton(
+                onPressed: _currentStep < _totalSteps - 1
+                    ? _nextStep
+                    : _saveFirearm,
+                child: Text(_currentStep < _totalSteps - 1 ? 'Next' : 'Save'),
               ),
             ),
-          if (_currentStep > 0) const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: FilledButton(
-              onPressed: _currentStep < _totalSteps - 1
-                  ? _nextStep
-                  : _saveFirearm,
-              child: Text(_currentStep < _totalSteps - 1 ? 'Next' : 'Save'),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

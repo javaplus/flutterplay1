@@ -71,6 +71,7 @@ class LoadRecipeDetailScreen extends ConsumerWidget {
     final dateFormat = DateFormat('MMM dd, yyyy');
 
     return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 24),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
