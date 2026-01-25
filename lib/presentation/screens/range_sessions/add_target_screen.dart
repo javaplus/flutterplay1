@@ -762,9 +762,9 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
           TextButton(
             onPressed: () async {
               final newVelocity = double.tryParse(velocityController.text);
-              velocityController.dispose();
 
               if (newVelocity == null || newVelocity <= 0) {
+                velocityController.dispose();
                 Navigator.pop(context);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -775,8 +775,6 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
                 }
                 return;
               }
-
-              Navigator.pop(context);
 
               // Update the shot velocity
               final updatedShot = shot.copyWith(
@@ -802,7 +800,10 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
                 targetsByRangeSessionIdProvider(widget.rangeSessionId),
               );
 
+              // Clean up and close
+              velocityController.dispose();
               if (context.mounted) {
+                Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Shot velocity updated')),
                 );
