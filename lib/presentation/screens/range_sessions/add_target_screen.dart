@@ -373,11 +373,7 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
                     if (velocities.isEmpty) {
                       return const SizedBox.shrink();
                     }
-                    return _buildCollapsibleVelocityList(
-                      context,
-                      ref,
-                      velocities,
-                    );
+                    return _buildCollapsibleVelocityList(context, velocities);
                   },
                   loading: () => const SizedBox.shrink(),
                   error: (_, __) => const SizedBox.shrink(),
@@ -624,7 +620,6 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
 
   Widget _buildCollapsibleVelocityList(
     BuildContext context,
-    WidgetRef ref,
     List<ShotVelocity> velocities,
   ) {
     return Card(
@@ -691,8 +686,7 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
                         IconButton(
                           icon: const Icon(Icons.edit_outlined),
                           tooltip: 'Edit shot',
-                          onPressed: () =>
-                              _showEditShotDialog(context, ref, shot),
+                          onPressed: () => _showEditShotDialog(context, shot),
                         ),
                         IconButton(
                           icon: const Icon(
@@ -700,8 +694,7 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
                             color: Colors.red,
                           ),
                           tooltip: 'Delete shot',
-                          onPressed: () =>
-                              _confirmDeleteShot(context, ref, shot),
+                          onPressed: () => _confirmDeleteShot(context, shot),
                         ),
                       ],
                     ),
@@ -716,18 +709,14 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
     );
   }
 
-  void _showEditShotDialog(
-    BuildContext context,
-    WidgetRef ref,
-    ShotVelocity shot,
-  ) {
+  void _showEditShotDialog(BuildContext context, ShotVelocity shot) {
     final velocityController = TextEditingController(
       text: shot.velocity.toStringAsFixed(0),
     );
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Edit Shot Velocity'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -746,7 +735,7 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
             Text(
               'Original: ${shot.velocity.toStringAsFixed(0)} fps',
               style: Theme.of(
-                context,
+                dialogContext,
               ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
             ),
           ],
@@ -755,7 +744,7 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
           TextButton(
             onPressed: () {
               velocityController.dispose();
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
             },
             child: const Text('Cancel'),
           ),
@@ -765,9 +754,9 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
 
               if (newVelocity == null || newVelocity <= 0) {
                 velocityController.dispose();
-                Navigator.pop(context);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                Navigator.pop(dialogContext);
+                if (dialogContext.mounted) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
                     const SnackBar(
                       content: Text('Please enter a valid velocity'),
                     ),
@@ -792,18 +781,20 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
                   .read(targetNotifierProvider.notifier)
                   .recalcTargetVelocityStats(widget.target!.id);
 
-              // Refresh the UI
-              ref.invalidate(
-                shotVelocitiesByTargetIdProvider(widget.target!.id),
-              );
-              ref.invalidate(
-                targetsByRangeSessionIdProvider(widget.rangeSessionId),
-              );
-
-              // Clean up and close
+              // Clean up and close dialog first
               velocityController.dispose();
-              if (context.mounted) {
-                Navigator.pop(context);
+              if (dialogContext.mounted) {
+                Navigator.pop(dialogContext);
+              }
+
+              // Refresh the UI only if parent widget is still mounted
+              if (mounted) {
+                ref.invalidate(
+                  shotVelocitiesByTargetIdProvider(widget.target!.id),
+                );
+                ref.invalidate(
+                  targetsByRangeSessionIdProvider(widget.rangeSessionId),
+                );
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Shot velocity updated')),
                 );
@@ -816,26 +807,22 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
     );
   }
 
-  void _confirmDeleteShot(
-    BuildContext context,
-    WidgetRef ref,
-    ShotVelocity shot,
-  ) {
+  void _confirmDeleteShot(BuildContext context, ShotVelocity shot) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Shot'),
         content: const Text(
           'Remove this shot velocity from the target? This will update velocity statistics.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               final shotNotifier = ref.read(
                 shotVelocityNotifierProvider.notifier,
               );
@@ -845,14 +832,14 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
                   .read(targetNotifierProvider.notifier)
                   .recalcTargetVelocityStats(widget.target!.id);
 
-              ref.invalidate(
-                shotVelocitiesByTargetIdProvider(widget.target!.id),
-              );
-              ref.invalidate(
-                targetsByRangeSessionIdProvider(widget.rangeSessionId),
-              );
-
-              if (context.mounted) {
+              // Only invalidate and show snackbar if parent widget is still mounted
+              if (mounted) {
+                ref.invalidate(
+                  shotVelocitiesByTargetIdProvider(widget.target!.id),
+                );
+                ref.invalidate(
+                  targetsByRangeSessionIdProvider(widget.rangeSessionId),
+                );
                 ScaffoldMessenger.of(
                   context,
                 ).showSnackBar(const SnackBar(content: Text('Shot removed')));
