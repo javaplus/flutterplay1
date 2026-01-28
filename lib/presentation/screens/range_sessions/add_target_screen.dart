@@ -373,11 +373,7 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
                     if (velocities.isEmpty) {
                       return const SizedBox.shrink();
                     }
-                    return _buildCollapsibleVelocityList(
-                      context,
-                      ref,
-                      velocities,
-                    );
+                    return _buildCollapsibleVelocityList(context, velocities);
                   },
                   loading: () => const SizedBox.shrink(),
                   error: (_, __) => const SizedBox.shrink(),
@@ -624,7 +620,6 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
 
   Widget _buildCollapsibleVelocityList(
     BuildContext context,
-    WidgetRef ref,
     List<ShotVelocity> velocities,
   ) {
     return Card(
@@ -691,8 +686,7 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
                         IconButton(
                           icon: const Icon(Icons.edit_outlined),
                           tooltip: 'Edit shot',
-                          onPressed: () =>
-                              _showEditShotDialog(context, ref, shot),
+                          onPressed: () => _showEditShotDialog(context, shot),
                         ),
                         IconButton(
                           icon: const Icon(
@@ -700,8 +694,7 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
                             color: Colors.red,
                           ),
                           tooltip: 'Delete shot',
-                          onPressed: () =>
-                              _confirmDeleteShot(context, ref, shot),
+                          onPressed: () => _confirmDeleteShot(context, shot),
                         ),
                       ],
                     ),
@@ -716,153 +709,204 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
     );
   }
 
-  void _showEditShotDialog(
-    BuildContext context,
-    WidgetRef ref,
-    ShotVelocity shot,
-  ) {
+  void _showEditShotDialog(BuildContext context, ShotVelocity shot) {
     final velocityController = TextEditingController(
       text: shot.velocity.toStringAsFixed(0),
     );
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Shot Velocity'),
-        content: Column(
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+        ),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: velocityController,
-              keyboardType: TextInputType.number,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Velocity (fps)',
-                border: OutlineInputBorder(),
-                suffixText: 'fps',
-              ),
+            Row(
+              children: [
+                const Icon(Icons.speed, size: 28),
+                const SizedBox(width: 12),
+                Text(
+                  'Edit Shot Velocity',
+                  style: Theme.of(
+                    sheetContext,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(
               'Original: ${shot.velocity.toStringAsFixed(0)} fps',
               style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                sheetContext,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: velocityController,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                labelText: 'Velocity',
+                suffixText: 'fps',
+                border: const OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.grey[100],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      velocityController.dispose();
+                      Navigator.pop(sheetContext);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => _saveEditedVelocity(
+                      sheetContext,
+                      velocityController,
+                      shot,
+                    ),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('Save'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              velocityController.dispose();
-              Navigator.pop(context);
-            },
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final newVelocity = double.tryParse(velocityController.text);
-              velocityController.dispose();
-
-              if (newVelocity == null || newVelocity <= 0) {
-                Navigator.pop(context);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please enter a valid velocity'),
-                    ),
-                  );
-                }
-                return;
-              }
-
-              Navigator.pop(context);
-
-              // Update the shot velocity
-              final updatedShot = shot.copyWith(
-                velocity: newVelocity,
-                updatedAt: DateTime.now(),
-              );
-
-              final shotNotifier = ref.read(
-                shotVelocityNotifierProvider.notifier,
-              );
-              await shotNotifier.updateShotVelocity(updatedShot);
-
-              // Recalculate target statistics
-              await ref
-                  .read(targetNotifierProvider.notifier)
-                  .recalcTargetVelocityStats(widget.target!.id);
-
-              // Refresh the UI
-              ref.invalidate(
-                shotVelocitiesByTargetIdProvider(widget.target!.id),
-              );
-              ref.invalidate(
-                targetsByRangeSessionIdProvider(widget.rangeSessionId),
-              );
-
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Shot velocity updated')),
-                );
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
-    );
+    ).whenComplete(() {
+      velocityController.dispose();
+    });
   }
 
-  void _confirmDeleteShot(
-    BuildContext context,
-    WidgetRef ref,
+  Future<void> _saveEditedVelocity(
+    BuildContext sheetContext,
+    TextEditingController controller,
     ShotVelocity shot,
-  ) {
+  ) async {
+    final newVelocity = double.tryParse(controller.text);
+
+    // Close the bottom sheet first before any async operations
+    Navigator.pop(sheetContext);
+
+    if (newVelocity == null || newVelocity <= 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a valid velocity')),
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
+    // Update the shot velocity
+    final updatedShot = shot.copyWith(
+      velocity: newVelocity,
+      updatedAt: DateTime.now(),
+    );
+
+    final shotNotifier = ref.read(shotVelocityNotifierProvider.notifier);
+    await shotNotifier.updateShotVelocity(updatedShot);
+
+    if (!mounted) return;
+
+    // Recalculate target statistics
+    await ref
+        .read(targetNotifierProvider.notifier)
+        .recalcTargetVelocityStats(widget.target!.id);
+
+    if (!mounted) return;
+
+    // Schedule provider refresh after the current frame completes
+    // to avoid conflicts with autoDispose lifecycle
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.invalidate(shotVelocitiesByTargetIdProvider(widget.target!.id));
+      ref.invalidate(targetsByRangeSessionIdProvider(widget.rangeSessionId));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Shot velocity updated')));
+    });
+  }
+
+  void _confirmDeleteShot(BuildContext context, ShotVelocity shot) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Shot'),
         content: const Text(
           'Remove this shot velocity from the target? This will update velocity statistics.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final shotNotifier = ref.read(
-                shotVelocityNotifierProvider.notifier,
-              );
-              await shotNotifier.deleteShotVelocity(shot.id);
-
-              await ref
-                  .read(targetNotifierProvider.notifier)
-                  .recalcTargetVelocityStats(widget.target!.id);
-
-              ref.invalidate(
-                shotVelocitiesByTargetIdProvider(widget.target!.id),
-              );
-              ref.invalidate(
-                targetsByRangeSessionIdProvider(widget.rangeSessionId),
-              );
-
-              if (context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Shot removed')));
-              }
-            },
+            onPressed: () => _deleteShot(dialogContext, shot),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _deleteShot(
+    BuildContext dialogContext,
+    ShotVelocity shot,
+  ) async {
+    // Close dialog first before any async operations
+    Navigator.pop(dialogContext);
+
+    if (!mounted) return;
+
+    final shotNotifier = ref.read(shotVelocityNotifierProvider.notifier);
+    await shotNotifier.deleteShotVelocity(shot.id);
+
+    if (!mounted) return;
+
+    await ref
+        .read(targetNotifierProvider.notifier)
+        .recalcTargetVelocityStats(widget.target!.id);
+
+    if (!mounted) return;
+
+    // Schedule provider refresh after the current frame completes
+    // to avoid conflicts with autoDispose lifecycle
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.invalidate(shotVelocitiesByTargetIdProvider(widget.target!.id));
+      ref.invalidate(targetsByRangeSessionIdProvider(widget.rangeSessionId));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Shot removed')));
+    });
   }
 
   void _confirmDelete() {

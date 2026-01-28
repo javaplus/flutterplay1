@@ -558,15 +558,16 @@ class TargetAnalysisPainter extends CustomPainter {
     final refBorderPaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = 1;
 
     for (final point in referencePoints) {
       final displayPoint = Offset(
         point.dx * displayScale,
         point.dy * displayScale,
       );
-      canvas.drawCircle(displayPoint, 10, refPaint);
-      canvas.drawCircle(displayPoint, 10, refBorderPaint);
+      // Draw smaller reference points so they don't obscure the image
+      canvas.drawCircle(displayPoint, 5, refPaint);
+      canvas.drawCircle(displayPoint, 5, refBorderPaint);
     }
 
     // Draw line between reference points

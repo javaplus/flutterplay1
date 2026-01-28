@@ -19,8 +19,8 @@ final shotVelocityRepositoryProvider = Provider<ShotVelocityRepository>((ref) {
 });
 
 /// Provider for shot velocities by target ID
-final shotVelocitiesByTargetIdProvider = FutureProvider.family
-    .autoDispose<List<ShotVelocity>, String>((ref, targetId) async {
+final shotVelocitiesByTargetIdProvider =
+    FutureProvider.family<List<ShotVelocity>, String>((ref, targetId) async {
       print(
         '🎯 shotVelocitiesByTargetIdProvider called with targetId: $targetId',
       );
