@@ -714,97 +714,144 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
       text: shot.velocity.toStringAsFixed(0),
     );
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Edit Shot Velocity'),
-        content: Column(
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+        ),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: velocityController,
-              keyboardType: TextInputType.number,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Velocity (fps)',
-                border: OutlineInputBorder(),
-                suffixText: 'fps',
-              ),
+            Row(
+              children: [
+                const Icon(Icons.speed, size: 28),
+                const SizedBox(width: 12),
+                Text(
+                  'Edit Shot Velocity',
+                  style: Theme.of(
+                    sheetContext,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(
               'Original: ${shot.velocity.toStringAsFixed(0)} fps',
               style: Theme.of(
-                dialogContext,
-              ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                sheetContext,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: velocityController,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                labelText: 'Velocity',
+                suffixText: 'fps',
+                border: const OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.grey[100],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      velocityController.dispose();
+                      Navigator.pop(sheetContext);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('Cancel'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => _saveEditedVelocity(
+                      sheetContext,
+                      velocityController,
+                      shot,
+                    ),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text('Save'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              velocityController.dispose();
-              Navigator.pop(dialogContext);
-            },
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final newVelocity = double.tryParse(velocityController.text);
-
-              if (newVelocity == null || newVelocity <= 0) {
-                velocityController.dispose();
-                Navigator.pop(dialogContext);
-                if (dialogContext.mounted) {
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    const SnackBar(
-                      content: Text('Please enter a valid velocity'),
-                    ),
-                  );
-                }
-                return;
-              }
-
-              // Update the shot velocity
-              final updatedShot = shot.copyWith(
-                velocity: newVelocity,
-                updatedAt: DateTime.now(),
-              );
-
-              final shotNotifier = ref.read(
-                shotVelocityNotifierProvider.notifier,
-              );
-              await shotNotifier.updateShotVelocity(updatedShot);
-
-              // Recalculate target statistics
-              await ref
-                  .read(targetNotifierProvider.notifier)
-                  .recalcTargetVelocityStats(widget.target!.id);
-
-              // Clean up and close dialog first
-              velocityController.dispose();
-              if (dialogContext.mounted) {
-                Navigator.pop(dialogContext);
-              }
-
-              // Refresh the UI only if parent widget is still mounted
-              if (mounted) {
-                ref.invalidate(
-                  shotVelocitiesByTargetIdProvider(widget.target!.id),
-                );
-                ref.invalidate(
-                  targetsByRangeSessionIdProvider(widget.rangeSessionId),
-                );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Shot velocity updated')),
-                );
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
+    ).whenComplete(() {
+      velocityController.dispose();
+    });
+  }
+
+  Future<void> _saveEditedVelocity(
+    BuildContext sheetContext,
+    TextEditingController controller,
+    ShotVelocity shot,
+  ) async {
+    final newVelocity = double.tryParse(controller.text);
+
+    // Close the bottom sheet first before any async operations
+    Navigator.pop(sheetContext);
+
+    if (newVelocity == null || newVelocity <= 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a valid velocity')),
+        );
+      }
+      return;
+    }
+
+    if (!mounted) return;
+
+    // Update the shot velocity
+    final updatedShot = shot.copyWith(
+      velocity: newVelocity,
+      updatedAt: DateTime.now(),
     );
+
+    final shotNotifier = ref.read(shotVelocityNotifierProvider.notifier);
+    await shotNotifier.updateShotVelocity(updatedShot);
+
+    if (!mounted) return;
+
+    // Recalculate target statistics
+    await ref
+        .read(targetNotifierProvider.notifier)
+        .recalcTargetVelocityStats(widget.target!.id);
+
+    if (!mounted) return;
+
+    // Schedule provider refresh after the current frame completes
+    // to avoid conflicts with autoDispose lifecycle
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.invalidate(shotVelocitiesByTargetIdProvider(widget.target!.id));
+      ref.invalidate(targetsByRangeSessionIdProvider(widget.rangeSessionId));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Shot velocity updated')));
+    });
   }
 
   void _confirmDeleteShot(BuildContext context, ShotVelocity shot) {
@@ -821,36 +868,45 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              final shotNotifier = ref.read(
-                shotVelocityNotifierProvider.notifier,
-              );
-              await shotNotifier.deleteShotVelocity(shot.id);
-
-              await ref
-                  .read(targetNotifierProvider.notifier)
-                  .recalcTargetVelocityStats(widget.target!.id);
-
-              // Only invalidate and show snackbar if parent widget is still mounted
-              if (mounted) {
-                ref.invalidate(
-                  shotVelocitiesByTargetIdProvider(widget.target!.id),
-                );
-                ref.invalidate(
-                  targetsByRangeSessionIdProvider(widget.rangeSessionId),
-                );
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('Shot removed')));
-              }
-            },
+            onPressed: () => _deleteShot(dialogContext, shot),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _deleteShot(
+    BuildContext dialogContext,
+    ShotVelocity shot,
+  ) async {
+    // Close dialog first before any async operations
+    Navigator.pop(dialogContext);
+
+    if (!mounted) return;
+
+    final shotNotifier = ref.read(shotVelocityNotifierProvider.notifier);
+    await shotNotifier.deleteShotVelocity(shot.id);
+
+    if (!mounted) return;
+
+    await ref
+        .read(targetNotifierProvider.notifier)
+        .recalcTargetVelocityStats(widget.target!.id);
+
+    if (!mounted) return;
+
+    // Schedule provider refresh after the current frame completes
+    // to avoid conflicts with autoDispose lifecycle
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.invalidate(shotVelocitiesByTargetIdProvider(widget.target!.id));
+      ref.invalidate(targetsByRangeSessionIdProvider(widget.rangeSessionId));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Shot removed')));
+    });
   }
 
   void _confirmDelete() {
