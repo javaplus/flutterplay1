@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -61,12 +62,17 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (kDebugMode)
+      print('🔵 BUILD: AddTargetScreen building, mounted=$mounted');
     final isEditing = widget.target != null;
 
     // Watch shot velocities if editing to show count
+    if (kDebugMode && isEditing)
+      print('🔵 BUILD: About to watch shotVelocitiesByTargetIdProvider');
     final velocitiesAsync = isEditing
         ? ref.watch(shotVelocitiesByTargetIdProvider(widget.target!.id))
         : null;
+    if (kDebugMode && isEditing) print('🔵 BUILD: Finished watching provider');
 
     return Scaffold(
       appBar: AppBar(
@@ -713,6 +719,8 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
     final velocityController = TextEditingController(
       text: shot.velocity.toStringAsFixed(0),
     );
+    // Track if we're saving to avoid dispose conflicts
+    bool isSaving = false;
 
     showModalBottomSheet(
       context: context,
@@ -770,7 +778,6 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
-                      velocityController.dispose();
                       Navigator.pop(sheetContext);
                     },
                     style: OutlinedButton.styleFrom(
@@ -782,11 +789,14 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: FilledButton(
-                    onPressed: () => _saveEditedVelocity(
-                      sheetContext,
-                      velocityController,
-                      shot,
-                    ),
+                    onPressed: () {
+                      // Extract the value BEFORE closing the sheet
+                      final newVelocityText = velocityController.text;
+                      isSaving = true;
+                      Navigator.pop(sheetContext);
+                      // Now perform the save with the extracted value
+                      _performVelocityUpdate(shot, newVelocityText);
+                    },
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
@@ -799,19 +809,24 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
         ),
       ),
     ).whenComplete(() {
-      velocityController.dispose();
+      // Only dispose if we weren't saving - the save path handles its own cleanup
+      if (!isSaving) {
+        velocityController.dispose();
+      } else {
+        // Dispose after a delay to ensure the sheet animation completes
+        Future.delayed(const Duration(milliseconds: 300), () {
+          velocityController.dispose();
+        });
+      }
     });
   }
 
-  Future<void> _saveEditedVelocity(
-    BuildContext sheetContext,
-    TextEditingController controller,
+  Future<void> _performVelocityUpdate(
     ShotVelocity shot,
+    String velocityText,
   ) async {
-    final newVelocity = double.tryParse(controller.text);
-
-    // Close the bottom sheet first before any async operations
-    Navigator.pop(sheetContext);
+    if (kDebugMode) print('🟡 1. _performVelocityUpdate START');
+    final newVelocity = double.tryParse(velocityText);
 
     if (newVelocity == null || newVelocity <= 0) {
       if (mounted) {
@@ -822,35 +837,78 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
       return;
     }
 
-    if (!mounted) return;
+    if (!mounted) {
+      if (kDebugMode) print('🔴 1a. Widget not mounted, aborting');
+      return;
+    }
 
     // Update the shot velocity
+    if (kDebugMode) print('🟡 2. Creating updated shot');
     final updatedShot = shot.copyWith(
       velocity: newVelocity,
       updatedAt: DateTime.now(),
     );
 
+    if (kDebugMode) print('🟡 3. Calling updateShotVelocity');
     final shotNotifier = ref.read(shotVelocityNotifierProvider.notifier);
     await shotNotifier.updateShotVelocity(updatedShot);
+    if (kDebugMode)
+      print('🟡 4. updateShotVelocity complete, mounted=$mounted');
 
-    if (!mounted) return;
+    if (!mounted) {
+      if (kDebugMode) print('🔴 4a. Widget not mounted after update, aborting');
+      return;
+    }
 
     // Recalculate target statistics
+    if (kDebugMode) print('🟡 5. Calling recalcTargetVelocityStats');
     await ref
         .read(targetNotifierProvider.notifier)
         .recalcTargetVelocityStats(widget.target!.id);
+    if (kDebugMode)
+      print('🟡 6. recalcTargetVelocityStats complete, mounted=$mounted');
 
-    if (!mounted) return;
+    if (!mounted) {
+      if (kDebugMode) print('🔴 6a. Widget not mounted after recalc, aborting');
+      return;
+    }
 
-    // Schedule provider refresh after the current frame completes
-    // to avoid conflicts with autoDispose lifecycle
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      ref.invalidate(shotVelocitiesByTargetIdProvider(widget.target!.id));
-      ref.invalidate(targetsByRangeSessionIdProvider(widget.rangeSessionId));
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Shot velocity updated')));
+    // Capture IDs before async work to avoid accessing widget during disposal
+    final targetId = widget.target!.id;
+    final rangeSessionId = widget.rangeSessionId;
+    if (kDebugMode)
+      print(
+        '🟡 7. Captured IDs: targetId=$targetId, rangeSessionId=$rangeSessionId',
+      );
+
+    // Use Future.microtask instead of addPostFrameCallback
+    // This ensures we're outside the current build/dispose cycle
+    if (kDebugMode) print('🟡 8. Scheduling Future.microtask');
+    Future.microtask(() {
+      if (kDebugMode)
+        print('🟡 9. Future.microtask executing, mounted=$mounted');
+      if (!mounted) {
+        if (kDebugMode)
+          print('🔴 9a. Widget not mounted in microtask, aborting');
+        return;
+      }
+
+      // Invalidate providers - this will trigger rebuilds
+      if (kDebugMode)
+        print('🟡 10. About to invalidate shotVelocitiesByTargetIdProvider');
+      ref.invalidate(shotVelocitiesByTargetIdProvider(targetId));
+      if (kDebugMode)
+        print('🟡 11. About to invalidate targetsByRangeSessionIdProvider');
+      ref.invalidate(targetsByRangeSessionIdProvider(rangeSessionId));
+      if (kDebugMode) print('🟡 12. Providers invalidated, mounted=$mounted');
+
+      if (mounted) {
+        if (kDebugMode) print('🟡 13. Showing snackbar');
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Shot velocity updated')));
+        if (kDebugMode) print('🟡 14. _performVelocityUpdate COMPLETE');
+      }
     });
   }
 
@@ -897,15 +955,24 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
 
     if (!mounted) return;
 
-    // Schedule provider refresh after the current frame completes
-    // to avoid conflicts with autoDispose lifecycle
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Capture IDs before async work to avoid accessing widget during disposal
+    final targetId = widget.target!.id;
+    final rangeSessionId = widget.rangeSessionId;
+
+    // Use Future.microtask instead of addPostFrameCallback
+    // This ensures we're outside the current build/dispose cycle
+    Future.microtask(() {
       if (!mounted) return;
-      ref.invalidate(shotVelocitiesByTargetIdProvider(widget.target!.id));
-      ref.invalidate(targetsByRangeSessionIdProvider(widget.rangeSessionId));
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Shot removed')));
+
+      // Invalidate providers - this will trigger rebuilds
+      ref.invalidate(shotVelocitiesByTargetIdProvider(targetId));
+      ref.invalidate(targetsByRangeSessionIdProvider(rangeSessionId));
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Shot removed')));
+      }
     });
   }
 
