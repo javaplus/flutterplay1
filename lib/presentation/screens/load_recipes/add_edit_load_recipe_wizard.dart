@@ -9,8 +9,13 @@ import '../../../core/constants/calibers.dart';
 /// Multi-step wizard for adding or editing a load recipe
 class AddEditLoadRecipeWizard extends ConsumerStatefulWidget {
   final LoadRecipe? loadRecipe; // null for add, non-null for edit
+  final bool isCloning; // true when cloning an existing recipe
 
-  const AddEditLoadRecipeWizard({super.key, this.loadRecipe});
+  const AddEditLoadRecipeWizard({
+    super.key,
+    this.loadRecipe,
+    this.isCloning = false,
+  });
 
   @override
   ConsumerState<AddEditLoadRecipeWizard> createState() =>
@@ -50,7 +55,9 @@ class _AddEditLoadRecipeWizardState
   void _loadLoadRecipeData() {
     if (widget.loadRecipe != null) {
       final recipe = widget.loadRecipe!;
-      _nicknameController.text = recipe.nickname;
+      _nicknameController.text = widget.isCloning
+          ? '${recipe.nickname} (Copy)'
+          : recipe.nickname;
       _cartridgeController.text = recipe.cartridge;
       _bulletWeightController.text = recipe.bulletWeight.toString();
       _bulletTypeController.text = recipe.bulletType;
@@ -88,11 +95,17 @@ class _AddEditLoadRecipeWizardState
 
   @override
   Widget build(BuildContext context) {
-    final isEditing = widget.loadRecipe != null;
+    final isEditing = widget.loadRecipe != null && !widget.isCloning;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? 'Edit Load Recipe' : 'Add Load Recipe'),
+        title: Text(
+          isEditing
+              ? 'Edit Load Recipe'
+              : widget.isCloning
+              ? 'Clone Load Recipe'
+              : 'Add Load Recipe',
+        ),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: _confirmCancel,
@@ -658,7 +671,7 @@ class _AddEditLoadRecipeWizardState
       return;
     }
 
-    final isEditing = widget.loadRecipe != null;
+    final isEditing = widget.loadRecipe != null && !widget.isCloning;
     final now = DateTime.now();
 
     final loadRecipe = LoadRecipe(
@@ -707,6 +720,8 @@ class _AddEditLoadRecipeWizardState
           content: Text(
             isEditing
                 ? 'Load recipe updated successfully'
+                : widget.isCloning
+                ? 'Load recipe cloned successfully'
                 : 'Load recipe added successfully',
           ),
         ),

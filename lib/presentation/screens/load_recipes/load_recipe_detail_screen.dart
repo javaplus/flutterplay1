@@ -25,11 +25,18 @@ class LoadRecipeDetailScreen extends ConsumerWidget {
               return Row(
                 children: [
                   IconButton(
+                    icon: const Icon(Icons.copy),
+                    tooltip: 'Clone Recipe',
+                    onPressed: () => _navigateToClone(context, ref, loadRecipe),
+                  ),
+                  IconButton(
                     icon: const Icon(Icons.edit),
+                    tooltip: 'Edit Recipe',
                     onPressed: () => _navigateToEdit(context, ref, loadRecipe),
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete),
+                    tooltip: 'Delete Recipe',
                     onPressed: () => _confirmDelete(context, ref, loadRecipe),
                   ),
                 ],
@@ -315,6 +322,19 @@ class LoadRecipeDetailScreen extends ConsumerWidget {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AddEditLoadRecipeWizard(loadRecipe: loadRecipe),
+      ),
+    );
+  }
+
+  void _navigateToClone(
+    BuildContext context,
+    WidgetRef ref,
+    LoadRecipe loadRecipe,
+  ) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            AddEditLoadRecipeWizard(loadRecipe: loadRecipe, isCloning: true),
       ),
     );
   }
