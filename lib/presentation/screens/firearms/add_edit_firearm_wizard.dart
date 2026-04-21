@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 import '../../../core/constants/calibers.dart';
 import '../../../domain/entities/firearm.dart';
@@ -540,8 +542,10 @@ class _AddEditFirearmWizardState extends ConsumerState<AddEditFirearmWizard> {
       );
 
       if (image != null) {
+        // Save image to persistent storage
+        final permanentPath = await _saveImageToPersistentStorage(image.path);
         setState(() {
-          _photoPath = image.path;
+          _photoPath = permanentPath;
         });
       }
     } catch (e) {
@@ -551,6 +555,22 @@ class _AddEditFirearmWizardState extends ConsumerState<AddEditFirearmWizard> {
         ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
       }
     }
+  }
+
+  /// Saves the image to a persistent directory in the app's documents folder
+  Future<String> _saveImageToPersistentStorage(String tempPath) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final firearmPhotosDir = Directory('${appDir.path}/firearm_photos');
+    if (!await firearmPhotosDir.exists()) {
+      await firearmPhotosDir.create(recursive: true);
+    }
+
+    final fileName = '${const Uuid().v4()}${path.extension(tempPath)}';
+    final permanentPath = '${firearmPhotosDir.path}/$fileName';
+    final tempFile = File(tempPath);
+    await tempFile.copy(permanentPath);
+
+    return permanentPath;
   }
 
   void _nextStep() {

@@ -7,6 +7,7 @@ import '../providers/range_session_provider.dart';
 import 'firearms/firearms_list_screen.dart';
 import 'load_recipes/load_recipes_list_screen.dart';
 import 'range_sessions/range_sessions_list_screen.dart';
+import 'settings/settings_screen.dart';
 
 /// Main home screen with navigation to different sections
 class HomeScreen extends ConsumerStatefulWidget {
@@ -70,6 +71,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         elevation: 2,
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Padding(
