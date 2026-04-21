@@ -1,0 +1,241 @@
+{
+  "schemaVersion": 1,
+  "exportedAt": "2026-04-21T10:00:00.000Z",
+  "appVersion": "1.0.0",
+  "metadata": {
+    "totalFirearms": 2,
+    "totalLoadRecipes": 2,
+    "totalRangeSessions": 2,
+    "totalTargets": 3,
+    "totalShotVelocities": 10,
+    "totalImages": 3,
+    "imageManifest": {
+      "f1": "images/firearm_f1.jpg",
+      "t1": "images/target_t1.jpg",
+      "t2": "images/target_t2.jpg"
+    }
+  },
+  "firearms": [
+    {
+      "id": "f1",
+      "name": "Winchester Model 70",
+      "make": "Winchester",
+      "model": "Model 70",
+      "caliber": ".308 Winchester",
+      "barrelLength": 24.0,
+      "barrelTwistRate": "1:10",
+      "roundCount": 500,
+      "opticInfo": "Leupold VX-5HD 3-15x44",
+      "notes": "Accurate rifle, well maintained",
+      "imageFileName": "firearm_f1.jpg",
+      "createdAt": "2026-01-15T08:00:00.000Z",
+      "updatedAt": "2026-04-20T14:30:00.000Z"
+    },
+    {
+      "id": "f2",
+      "name": "Remington 700",
+      "make": "Remington",
+      "model": "700 SPS",
+      "caliber": "6.5 Creedmoor",
+      "barrelLength": 22.0,
+      "barrelTwistRate": "1:8",
+      "roundCount": 250,
+      "opticInfo": null,
+      "notes": null,
+      "imageFileName": null,
+      "createdAt": "2026-03-01T12:00:00.000Z",
+      "updatedAt": "2026-04-10T09:15:00.000Z"
+    }
+  ],
+  "loadRecipes": [
+    {
+      "id": "r1",
+      "nickname": "Match Load - 168gr",
+      "cartridge": ".308 Winchester",
+      "bulletWeight": 168.0,
+      "bulletType": "Sierra MatchKing HPBT",
+      "powderType": "Varget",
+      "powderCharge": 44.0,
+      "primerType": "CCI BR-2",
+      "brassType": "Lapua",
+      "brassPrep": "Full length resize, neck turned",
+      "coalLength": 2.800,
+      "seatingDepth": 0.020,
+      "crimp": "None",
+      "pressureSigns": [],
+      "notes": "Very accurate, consistent velocities",
+      "createdAt": "2026-01-20T10:00:00.000Z",
+      "updatedAt": "2026-02-15T16:00:00.000Z"
+    },
+    {
+      "id": "r2",
+      "nickname": "Creedmoor Target",
+      "cartridge": "6.5 Creedmoor",
+      "bulletWeight": 140.0,
+      "bulletType": "Hornady ELD-M",
+      "powderType": "H4350",
+      "powderCharge": 41.5,
+      "primerType": "Federal 210M",
+      "brassType": "Hornady",
+      "brassPrep": null,
+      "coalLength": 2.810,
+      "seatingDepth": null,
+      "crimp": null,
+      "pressureSigns": [],
+      "notes": null,
+      "createdAt": "2026-03-05T14:00:00.000Z",
+      "updatedAt": "2026-03-05T14:00:00.000Z"
+    }
+  ],
+  "rangeSessions": [
+    {
+      "id": "s1",
+      "date": "2026-04-15T09:00:00.000Z",
+      "firearmId": "f1",
+      "loadRecipeId": "r1",
+      "weather": "Sunny, 70°F, light breeze",
+      "notes": "Excellent session, very consistent groups",
+      "createdAt": "2026-04-15T09:00:00.000Z",
+      "updatedAt": "2026-04-15T12:00:00.000Z"
+    },
+    {
+      "id": "s2",
+      "date": "2026-04-18T10:00:00.000Z",
+      "firearmId": "f2",
+      "loadRecipeId": "r2",
+      "weather": null,
+      "notes": null,
+      "createdAt": "2026-04-18T10:00:00.000Z",
+      "updatedAt": "2026-04-18T13:00:00.000Z"
+    }
+  ],
+  "targets": [
+    {
+      "id": "t1",
+      "rangeSessionId": "s1",
+      "imageFileName": "target_t1.jpg",
+      "distance": 100.0,
+      "numberOfShots": 5,
+      "groupSizeInches": 0.75,
+      "groupSizeMoa": 0.72,
+      "avgVelocity": 2650.0,
+      "standardDeviation": 8.5,
+      "extremeSpread": 22.0,
+      "notes": "Best group of the day",
+      "createdAt": "2026-04-15T09:30:00.000Z",
+      "updatedAt": "2026-04-15T09:30:00.000Z"
+    },
+    {
+      "id": "t2",
+      "rangeSessionId": "s1",
+      "imageFileName": "target_t2.jpg",
+      "distance": 200.0,
+      "numberOfShots": 5,
+      "groupSizeInches": 1.5,
+      "groupSizeMoa": 0.72,
+      "avgVelocity": 2645.0,
+      "standardDeviation": 10.2,
+      "extremeSpread": 28.0,
+      "notes": null,
+      "createdAt": "2026-04-15T10:00:00.000Z",
+      "updatedAt": "2026-04-15T10:00:00.000Z"
+    },
+    {
+      "id": "t3",
+      "rangeSessionId": "s2",
+      "imageFileName": null,
+      "distance": 100.0,
+      "numberOfShots": 3,
+      "groupSizeInches": 1.2,
+      "groupSizeMoa": 1.15,
+      "avgVelocity": 2710.0,
+      "standardDeviation": 12.0,
+      "extremeSpread": 30.0,
+      "notes": null,
+      "createdAt": "2026-04-18T10:30:00.000Z",
+      "updatedAt": "2026-04-18T10:30:00.000Z"
+    }
+  ],
+  "shotVelocities": [
+    {
+      "id": "v1",
+      "targetId": "t1",
+      "velocity": 2645.0,
+      "timestamp": "2026-04-15T09:30:10.000Z",
+      "createdAt": "2026-04-15T09:30:10.000Z",
+      "updatedAt": "2026-04-15T09:30:10.000Z"
+    },
+    {
+      "id": "v2",
+      "targetId": "t1",
+      "velocity": 2650.0,
+      "timestamp": "2026-04-15T09:30:20.000Z",
+      "createdAt": "2026-04-15T09:30:20.000Z",
+      "updatedAt": "2026-04-15T09:30:20.000Z"
+    },
+    {
+      "id": "v3",
+      "targetId": "t1",
+      "velocity": 2653.0,
+      "timestamp": "2026-04-15T09:30:30.000Z",
+      "createdAt": "2026-04-15T09:30:30.000Z",
+      "updatedAt": "2026-04-15T09:30:30.000Z"
+    },
+    {
+      "id": "v4",
+      "targetId": "t1",
+      "velocity": 2648.0,
+      "timestamp": "2026-04-15T09:30:40.000Z",
+      "createdAt": "2026-04-15T09:30:40.000Z",
+      "updatedAt": "2026-04-15T09:30:40.000Z"
+    },
+    {
+      "id": "v5",
+      "targetId": "t1",
+      "velocity": 2654.0,
+      "timestamp": "2026-04-15T09:30:50.000Z",
+      "createdAt": "2026-04-15T09:30:50.000Z",
+      "updatedAt": "2026-04-15T09:30:50.000Z"
+    },
+    {
+      "id": "v6",
+      "targetId": "t2",
+      "velocity": 2638.0,
+      "timestamp": "2026-04-15T10:00:10.000Z",
+      "createdAt": "2026-04-15T10:00:10.000Z",
+      "updatedAt": "2026-04-15T10:00:10.000Z"
+    },
+    {
+      "id": "v7",
+      "targetId": "t2",
+      "velocity": 2645.0,
+      "timestamp": "2026-04-15T10:00:20.000Z",
+      "createdAt": "2026-04-15T10:00:20.000Z",
+      "updatedAt": "2026-04-15T10:00:20.000Z"
+    },
+    {
+      "id": "v8",
+      "targetId": "t2",
+      "velocity": 2650.0,
+      "timestamp": "2026-04-15T10:00:30.000Z",
+      "createdAt": "2026-04-15T10:00:30.000Z",
+      "updatedAt": "2026-04-15T10:00:30.000Z"
+    },
+    {
+      "id": "v9",
+      "targetId": "t2",
+      "velocity": 2643.0,
+      "timestamp": "2026-04-15T10:00:40.000Z",
+      "createdAt": "2026-04-15T10:00:40.000Z",
+      "updatedAt": "2026-04-15T10:00:40.000Z"
+    },
+    {
+      "id": "v10",
+      "targetId": "t2",
+      "velocity": 2649.0,
+      "timestamp": "2026-04-15T10:00:50.000Z",
+      "createdAt": "2026-04-15T10:00:50.000Z",
+      "updatedAt": "2026-04-15T10:00:50.000Z"
+    }
+  ]
+}

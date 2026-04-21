@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 
 import '../models/export_data.dart';
 import '../models/app_database.dart';
@@ -12,6 +14,7 @@ import '../datasources/load_recipe_local_datasource.dart';
 import '../datasources/range_session_local_datasource.dart';
 import '../datasources/target_local_datasource.dart';
 import '../datasources/shot_velocity_local_datasource.dart';
+import 'data_migrator.dart';
 
 /// Service for importing app data from a ZIP archive
 class DataImportService {
@@ -63,21 +66,18 @@ class DataImportService {
     );
 
     final jsonContent = String.fromCharCodes(dataJsonFile.content as List<int>);
-    final exportData = ExportData.fromJsonString(jsonContent);
 
-    // Check schema version
-    if (exportData.schemaVersion > currentExportSchemaVersion) {
-      throw Exception(
-        'This backup was created with a newer version of the app (schema v${exportData.schemaVersion}). '
-        'Please update the app to import this backup.',
-      );
-    }
+    // Parse and migrate if needed
+    final json = jsonDecode(jsonContent) as Map<String, dynamic>;
+    final exportData = DataMigrator.migrate(json);
 
-    if (exportData.schemaVersion < minCompatibleSchemaVersion) {
-      throw Exception(
-        'This backup is too old (schema v${exportData.schemaVersion}) and cannot be imported. '
-        'Minimum supported version is v$minCompatibleSchemaVersion.',
-      );
+    // In debug mode, validate migrated data
+    if (kDebugMode) {
+      try {
+        DataMigrator.validateMigrated(exportData);
+      } catch (e) {
+        throw Exception('Migration validation failed: $e');
+      }
     }
 
     // Count images in archive
@@ -91,7 +91,7 @@ class DataImportService {
       exportedAt: exportData.exportedAt,
       appVersion: exportData.appVersion,
       metadata: exportData.metadata,
-      needsMigration: exportData.schemaVersion < currentExportSchemaVersion,
+      needsMigration: json['schemaVersion'] != currentExportSchemaVersion,
       imageCount: imageCount,
     );
   }
@@ -139,7 +139,23 @@ class DataImportService {
       final jsonContent = String.fromCharCodes(
         dataJsonFile.content as List<int>,
       );
-      final exportData = ExportData.fromJsonString(jsonContent);
+
+      // Parse and migrate if needed
+      final json = jsonDecode(jsonContent) as Map<String, dynamic>;
+      final originalVersion = json['schemaVersion'] as int;
+      final exportData = DataMigrator.migrate(json);
+
+      // In debug mode, validate migrated data
+      if (kDebugMode) {
+        DataMigrator.validateMigrated(exportData);
+      }
+
+      // Log migration if it occurred
+      if (originalVersion != currentExportSchemaVersion) {
+        print(
+          'Migrated backup from v$originalVersion to v$currentExportSchemaVersion',
+        );
+      }
 
       // Step 3: Extract images to temp directory
       yield ImportProgressUpdate(
