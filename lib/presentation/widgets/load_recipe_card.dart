@@ -24,12 +24,12 @@ class LoadRecipeCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header row with cartridge and bullet weight
+              // Header row with nickname and bullet weight
               Row(
                 children: [
                   Expanded(
                     child: Text(
-                      loadRecipe.cartridge,
+                      loadRecipe.nickname,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -56,9 +56,9 @@ class LoadRecipeCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
 
-              // Bullet type
+              // Cartridge and bullet type
               Text(
-                loadRecipe.bulletType,
+                '${loadRecipe.cartridge} • ${loadRecipe.bulletType}',
                 style: Theme.of(
                   context,
                 ).textTheme.bodyLarge?.copyWith(color: Colors.grey[700]),
