@@ -1,0 +1,486 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://reloadingcompanion.app/schemas/export_v1.json",
+  "title": "Reloading Companion Export Format v1",
+  "description": "JSON Schema for Reloading Companion data export format version 1. This schema defines the contract for backwards compatibility - changes to this schema require incrementing the schemaVersion.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "exportedAt",
+    "appVersion",
+    "metadata",
+    "firearms",
+    "loadRecipes",
+    "rangeSessions",
+    "targets",
+    "shotVelocities"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Export schema version. Must be 1 for this schema."
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the export was created"
+    },
+    "appVersion": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+",
+      "description": "Application version that created this export (semver format)"
+    },
+    "metadata": {
+      "type": "object",
+      "required": [
+        "totalFirearms",
+        "totalLoadRecipes",
+        "totalRangeSessions",
+        "totalTargets",
+        "totalShotVelocities",
+        "totalImages",
+        "imageManifest"
+      ],
+      "properties": {
+        "totalFirearms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of firearms in this export"
+        },
+        "totalLoadRecipes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of load recipes in this export"
+        },
+        "totalRangeSessions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of range sessions in this export"
+        },
+        "totalTargets": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of targets in this export"
+        },
+        "totalShotVelocities": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of shot velocities in this export"
+        },
+        "totalImages": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of images in the export archive"
+        },
+        "imageManifest": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^images/"
+          },
+          "description": "Maps entity IDs to relative image paths in the archive (e.g., 'images/firearm_123.jpg')"
+        }
+      },
+      "additionalProperties": false
+    },
+    "firearms": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/firearm"
+      },
+      "description": "Array of exported firearms"
+    },
+    "loadRecipes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/loadRecipe"
+      },
+      "description": "Array of exported load recipes"
+    },
+    "rangeSessions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/rangeSession"
+      },
+      "description": "Array of exported range sessions"
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/target"
+      },
+      "description": "Array of exported targets"
+    },
+    "shotVelocities": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/shotVelocity"
+      },
+      "description": "Array of exported shot velocities"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "firearm": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "make",
+        "model",
+        "caliber",
+        "barrelLength",
+        "barrelTwistRate",
+        "roundCount",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier (UUID)"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "User-defined name for the firearm"
+        },
+        "make": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Manufacturer name"
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Model name/number"
+        },
+        "caliber": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Caliber/cartridge (e.g., '.308 Winchester')"
+        },
+        "barrelLength": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Barrel length in inches"
+        },
+        "barrelTwistRate": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Barrel twist rate (e.g., '1:10')"
+        },
+        "roundCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total rounds fired through this firearm"
+        },
+        "opticInfo": {
+          "type": ["string", "null"],
+          "description": "Optional optic/scope information"
+        },
+        "notes": {
+          "type": ["string", "null"],
+          "description": "Optional user notes"
+        },
+        "imageFileName": {
+          "type": ["string", "null"],
+          "pattern": "^firearm_[^/]+\\.[a-zA-Z0-9]+$",
+          "description": "Relative filename in archive (e.g., 'firearm_123.jpg'). Null if no image."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 last update timestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "loadRecipe": {
+      "type": "object",
+      "required": [
+        "id",
+        "nickname",
+        "cartridge",
+        "bulletWeight",
+        "bulletType",
+        "powderType",
+        "powderCharge",
+        "primerType",
+        "brassType",
+        "coalLength",
+        "pressureSigns",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier (UUID)"
+        },
+        "nickname": {
+          "type": "string",
+          "minLength": 1,
+          "description": "User-defined nickname for the load"
+        },
+        "cartridge": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Cartridge type (e.g., '.308 Winchester')"
+        },
+        "bulletWeight": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Bullet weight in grains"
+        },
+        "bulletType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Bullet type/brand (e.g., 'Sierra MatchKing HPBT')"
+        },
+        "powderType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Powder type/brand (e.g., 'Varget')"
+        },
+        "powderCharge": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Powder charge in grains"
+        },
+        "primerType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Primer type (e.g., 'CCI BR-2')"
+        },
+        "brassType": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Brass brand (e.g., 'Lapua')"
+        },
+        "brassPrep": {
+          "type": ["string", "null"],
+          "description": "Optional brass preparation notes"
+        },
+        "coalLength": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Cartridge Overall Length in inches"
+        },
+        "seatingDepth": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "Optional seating depth in inches"
+        },
+        "crimp": {
+          "type": ["string", "null"],
+          "description": "Optional crimp type/notes"
+        },
+        "pressureSigns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Array of observed pressure signs"
+        },
+        "notes": {
+          "type": ["string", "null"],
+          "description": "Optional user notes"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 last update timestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rangeSession": {
+      "type": "object",
+      "required": [
+        "id",
+        "date",
+        "firearmId",
+        "loadRecipeId",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier (UUID)"
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 session date"
+        },
+        "firearmId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Foreign key to firearms.id"
+        },
+        "loadRecipeId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Foreign key to loadRecipes.id"
+        },
+        "weather": {
+          "type": ["string", "null"],
+          "description": "Optional weather conditions"
+        },
+        "notes": {
+          "type": ["string", "null"],
+          "description": "Optional user notes"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 last update timestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "target": {
+      "type": "object",
+      "required": [
+        "id",
+        "rangeSessionId",
+        "distance",
+        "numberOfShots",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier (UUID)"
+        },
+        "rangeSessionId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Foreign key to rangeSessions.id"
+        },
+        "imageFileName": {
+          "type": ["string", "null"],
+          "pattern": "^target_[^/]+\\.[a-zA-Z0-9]+$",
+          "description": "Relative filename in archive (e.g., 'target_123.jpg'). Null if no image."
+        },
+        "distance": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Target distance in yards"
+        },
+        "numberOfShots": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of shots on target"
+        },
+        "groupSizeInches": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "Optional group size in inches"
+        },
+        "groupSizeMoa": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "Optional group size in MOA"
+        },
+        "avgVelocity": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "Optional average velocity in fps"
+        },
+        "standardDeviation": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "Optional velocity standard deviation"
+        },
+        "extremeSpread": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "Optional extreme spread in fps"
+        },
+        "notes": {
+          "type": ["string", "null"],
+          "description": "Optional user notes"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 last update timestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "shotVelocity": {
+      "type": "object",
+      "required": [
+        "id",
+        "targetId",
+        "velocity",
+        "timestamp",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier (UUID)"
+        },
+        "targetId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Foreign key to targets.id"
+        },
+        "velocity": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Shot velocity in fps"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when shot was recorded"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 last update timestamp"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

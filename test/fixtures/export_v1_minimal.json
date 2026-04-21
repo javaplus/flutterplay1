@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "exportedAt": "2026-04-21T10:00:00.000Z",
+  "appVersion": "1.0.0",
+  "metadata": {
+    "totalFirearms": 0,
+    "totalLoadRecipes": 0,
+    "totalRangeSessions": 0,
+    "totalTargets": 0,
+    "totalShotVelocities": 0,
+    "totalImages": 0,
+    "imageManifest": {}
+  },
+  "firearms": [],
+  "loadRecipes": [],
+  "rangeSessions": [],
+  "targets": [],
+  "shotVelocities": []
+}

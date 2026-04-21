@@ -8,12 +8,30 @@ import '../../domain/entities/shot_velocity.dart';
 
 /// Current export schema version
 /// Increment this when making breaking changes to the export format
+///
+/// ⚠️ IMPORTANT: See EXPORT_COMPATIBILITY_GUIDE.md before changing ⚠️
+/// Breaking changes require:
+/// 1. Incrementing this constant
+/// 2. Creating new schema file (schemas/export_v{N}.json)
+/// 3. Implementing migration logic in DataMigrator
+/// 4. Adding backwards compatibility tests
+///
+/// Schema Definition: schemas/export_v1.json
 const int currentExportSchemaVersion = 1;
 
 /// Minimum schema version that can be imported (for backwards compatibility)
+/// Only increment this if old versions are truly unsupported
+///
+/// Current: v1 (can import all v1 exports)
 const int minCompatibleSchemaVersion = 1;
 
 /// Model representing the complete exported data structure
+///
+/// This class defines the root structure of export files (data.json).
+/// The structure is versioned and validated against schemas/export_v{N}.json
+///
+/// ⚠️ PROTECTED CLASS: Changes may break backwards compatibility
+/// See .github/copilot-instructions.md and EXPORT_COMPATIBILITY_GUIDE.md
 class ExportData {
   final int schemaVersion;
   final DateTime exportedAt;
@@ -125,6 +143,13 @@ class ExportMetadata {
       totalTargets: json['totalTargets'] as int,
       totalShotVelocities: json['totalShotVelocities'] as int,
       totalImages: json['totalImages'] as int,
+
+      ///
+      /// ⚠️ PROTECTED CLASS: Changes may break backwards compatibility
+      /// Schema: schemas/export_v1.json#/definitions/firearm
+      ///
+      /// Non-breaking changes: Adding optional fields (String?, etc.)
+      /// Breaking changes: Removing fields, renaming, changing types, making fields required
       imageManifest: Map<String, String>.from(json['imageManifest'] as Map),
     );
   }
@@ -224,6 +249,10 @@ class FirearmExport {
       model: json['model'] as String,
       caliber: json['caliber'] as String,
       barrelLength: (json['barrelLength'] as num).toDouble(),
+
+      ///
+      /// ⚠️ PROTECTED CLASS: Changes may break backwards compatibility
+      /// Schema: schemas/export_v1.json#/definitions/loadRecipe
       barrelTwistRate: json['barrelTwistRate'] as String,
       roundCount: json['roundCount'] as int,
       opticInfo: json['opticInfo'] as String?,
@@ -350,6 +379,10 @@ class LoadRecipeExport {
       bulletType: json['bulletType'] as String,
       powderType: json['powderType'] as String,
       powderCharge: (json['powderCharge'] as num).toDouble(),
+
+      ///
+      /// ⚠️ PROTECTED CLASS: Changes may break backwards compatibility
+      /// Schema: schemas/export_v1.json#/definitions/rangeSession
       primerType: json['primerType'] as String,
       brassType: json['brassType'] as String,
       brassPrep: json['brassPrep'] as String?,
@@ -428,6 +461,10 @@ class RangeSessionExport {
   factory RangeSessionExport.fromJson(Map<String, dynamic> json) {
     return RangeSessionExport(
       id: json['id'] as String,
+
+      ///
+      /// ⚠️ PROTECTED CLASS: Changes may break backwards compatibility
+      /// Schema: schemas/export_v1.json#/definitions/target
       date: DateTime.parse(json['date'] as String),
       firearmId: json['firearmId'] as String,
       loadRecipeId: json['loadRecipeId'] as String,
@@ -536,6 +573,10 @@ class TargetExport {
       groupSizeMoa: (json['groupSizeMoa'] as num?)?.toDouble(),
       avgVelocity: (json['avgVelocity'] as num?)?.toDouble(),
       standardDeviation: (json['standardDeviation'] as num?)?.toDouble(),
+
+      ///
+      /// ⚠️ PROTECTED CLASS: Changes may break backwards compatibility
+      /// Schema: schemas/export_v1.json#/definitions/shotVelocity
       extremeSpread: (json['extremeSpread'] as num?)?.toDouble(),
       notes: json['notes'] as String?,
       createdAt: DateTime.parse(json['createdAt'] as String),
