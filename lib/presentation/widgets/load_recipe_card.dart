@@ -24,8 +24,9 @@ class LoadRecipeCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header row with nickname and bullet weight
+              // Header row with nickname and badges
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Text(
@@ -35,30 +36,64 @@ class LoadRecipeCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Text(
-                      '${loadRecipe.bulletWeight.toStringAsFixed(1)}gr',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Cartridge badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          loadRecipe.cartridge,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSecondaryContainer,
+                              ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 6),
+                      // Bullet weight badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          '${loadRecipe.bulletWeight.toStringAsFixed(1)}gr',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimaryContainer,
+                              ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
               const SizedBox(height: 8),
 
-              // Cartridge and bullet type
+              // Bullet type
               Text(
-                '${loadRecipe.cartridge} • ${loadRecipe.bulletType}',
+                loadRecipe.bulletType,
                 style: Theme.of(
                   context,
                 ).textTheme.bodyLarge?.copyWith(color: Colors.grey[700]),
