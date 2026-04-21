@@ -128,6 +128,7 @@ class RangeSessionDetailScreen extends ConsumerWidget {
                 return Column(
                   children: [
                     _buildSection(context, 'Load Recipe', [
+                      _buildInfoRow(context, 'Nickname', loadRecipe.nickname),
                       _buildInfoRow(context, 'Cartridge', loadRecipe.cartridge),
                       _buildInfoRow(
                         context,

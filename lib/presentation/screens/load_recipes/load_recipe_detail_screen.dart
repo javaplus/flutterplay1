@@ -25,11 +25,18 @@ class LoadRecipeDetailScreen extends ConsumerWidget {
               return Row(
                 children: [
                   IconButton(
+                    icon: const Icon(Icons.copy),
+                    tooltip: 'Clone Recipe',
+                    onPressed: () => _navigateToClone(context, ref, loadRecipe),
+                  ),
+                  IconButton(
                     icon: const Icon(Icons.edit),
+                    tooltip: 'Edit Recipe',
                     onPressed: () => _navigateToEdit(context, ref, loadRecipe),
                   ),
                   IconButton(
                     icon: const Icon(Icons.delete),
+                    tooltip: 'Delete Recipe',
                     onPressed: () => _confirmDelete(context, ref, loadRecipe),
                   ),
                 ],
@@ -79,10 +86,17 @@ class LoadRecipeDetailScreen extends ConsumerWidget {
           children: [
             // Header
             Text(
-              loadRecipe.cartridge,
+              loadRecipe.nickname,
               style: Theme.of(
                 context,
               ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              loadRecipe.cartridge,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 24),
 
@@ -312,6 +326,19 @@ class LoadRecipeDetailScreen extends ConsumerWidget {
     );
   }
 
+  void _navigateToClone(
+    BuildContext context,
+    WidgetRef ref,
+    LoadRecipe loadRecipe,
+  ) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            AddEditLoadRecipeWizard(loadRecipe: loadRecipe, isCloning: true),
+      ),
+    );
+  }
+
   void _confirmDelete(
     BuildContext context,
     WidgetRef ref,
@@ -322,7 +349,7 @@ class LoadRecipeDetailScreen extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: const Text('Delete Load Recipe'),
         content: Text(
-          'Are you sure you want to delete "${loadRecipe.cartridge}"?',
+          'Are you sure you want to delete "${loadRecipe.nickname}"?',
         ),
         actions: [
           TextButton(

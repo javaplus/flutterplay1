@@ -148,9 +148,7 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
                     items: loadRecipes.map((recipe) {
                       return DropdownMenuItem(
                         value: recipe.id,
-                        child: Text(
-                          '${recipe.cartridge} - ${recipe.bulletWeight}gr ${recipe.bulletType}',
-                        ),
+                        child: Text('${recipe.nickname} (${recipe.cartridge})'),
                       );
                     }).toList(),
                     onChanged: (value) {
