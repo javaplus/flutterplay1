@@ -15,6 +15,21 @@ For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 
+
 ### Testing:
 
 flutter run 2>&1 | grep -v "getInterlacedFlag"
+
+#### Connecting to Phone (Wireless ADB)
+
+Find IP and port by going on phone to Developer Options and to Wireless debugging. Click on wireless debugging to see port and to do Pair device with pairing code.
+
+```
+> adb pair 192.168.1.233:44617
+Enter pairing code: 296277`
+Successfully paired to 192.168.1.233:44617 [guid=adb-RFCX615AF0R-Ccb2QE]
+
+> adb connect 192.168.1.233:42373
+```
+
+
