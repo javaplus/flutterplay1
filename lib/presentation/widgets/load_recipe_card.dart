@@ -5,11 +5,13 @@ import '../../domain/entities/load_recipe.dart';
 class LoadRecipeCard extends StatelessWidget {
   final LoadRecipe loadRecipe;
   final VoidCallback onTap;
+  final VoidCallback? onStartRangeSession;
 
   const LoadRecipeCard({
     super.key,
     required this.loadRecipe,
     required this.onTap,
+    this.onStartRangeSession,
   });
 
   @override
@@ -36,6 +38,13 @@ class LoadRecipeCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (onStartRangeSession != null)
+                    IconButton(
+                      icon: const Icon(Icons.track_changes),
+                      tooltip: 'Start Range Session',
+                      onPressed: onStartRangeSession,
+                      visualDensity: VisualDensity.compact,
+                    ),
                   const SizedBox(width: 8),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,

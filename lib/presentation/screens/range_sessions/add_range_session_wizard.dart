@@ -9,8 +9,13 @@ import '../../providers/load_recipe_provider.dart';
 /// Wizard for adding or editing a range session
 class AddRangeSessionWizard extends ConsumerStatefulWidget {
   final RangeSession? session;
+  final String? initialLoadRecipeId;
 
-  const AddRangeSessionWizard({super.key, this.session});
+  const AddRangeSessionWizard({
+    super.key,
+    this.session,
+    this.initialLoadRecipeId,
+  });
 
   @override
   ConsumerState<AddRangeSessionWizard> createState() =>
@@ -42,6 +47,8 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
       _selectedLoadRecipeId = session.loadRecipeId;
       _weatherController.text = session.weather ?? '';
       _notesController.text = session.notes ?? '';
+    } else if (widget.initialLoadRecipeId != null) {
+      _selectedLoadRecipeId = widget.initialLoadRecipeId;
     }
   }
 
