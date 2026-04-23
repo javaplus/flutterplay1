@@ -245,7 +245,7 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
               TextFormField(
                 controller: _groupInchesController,
                 decoration: const InputDecoration(
-                  labelText: 'Group Size (inches) *',
+                  labelText: 'Group Size (inches)',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.straighten),
                 ),
@@ -253,11 +253,11 @@ class _AddTargetScreenState extends ConsumerState<AddTargetScreen> {
                   decimal: true,
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter group size';
-                  }
-                  if (double.tryParse(value) == null) {
-                    return 'Please enter a valid number';
+                  // Group size is optional, but if provided must be valid
+                  if (value != null && value.isNotEmpty) {
+                    if (double.tryParse(value) == null) {
+                      return 'Please enter a valid number';
+                    }
                   }
                   return null;
                 },
