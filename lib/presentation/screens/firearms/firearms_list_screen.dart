@@ -4,6 +4,7 @@ import '../../providers/firearm_provider.dart';
 import '../../widgets/firearm_card.dart';
 import 'firearm_detail_screen.dart';
 import 'add_edit_firearm_wizard.dart';
+import '../range_sessions/add_range_session_wizard.dart';
 
 /// Main screen displaying the list of firearms
 class FirearmsListScreen extends ConsumerStatefulWidget {
@@ -57,6 +58,8 @@ class _FirearmsListScreenState extends ConsumerState<FirearmsListScreen> {
                 return FirearmCard(
                   firearm: firearm,
                   onTap: () => _navigateToDetail(firearm.id),
+                  onStartRangeSession: () =>
+                      _navigateToRangeSession(firearm.id),
                 );
               },
             );
@@ -184,6 +187,15 @@ class _FirearmsListScreenState extends ConsumerState<FirearmsListScreen> {
     );
     // Refresh list after returning from detail screen
     ref.invalidate(firearmsListProvider);
+  }
+
+  void _navigateToRangeSession(String firearmId) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            AddRangeSessionWizard(initialFirearmId: firearmId),
+      ),
+    );
   }
 
   void _navigateToAddFirearm() async {

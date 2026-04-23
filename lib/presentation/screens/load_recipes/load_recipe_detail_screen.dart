@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../providers/load_recipe_provider.dart';
 import '../../../domain/entities/load_recipe.dart';
 import 'add_edit_load_recipe_wizard.dart';
+import '../range_sessions/add_range_session_wizard.dart';
 
 /// Detail screen for viewing a specific load recipe
 class LoadRecipeDetailScreen extends ConsumerWidget {
@@ -24,6 +25,12 @@ class LoadRecipeDetailScreen extends ConsumerWidget {
               if (loadRecipe == null) return const SizedBox.shrink();
               return Row(
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.track_changes),
+                    tooltip: 'Start Range Session',
+                    onPressed: () =>
+                        _navigateToRangeSession(context, loadRecipe),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.copy),
                     tooltip: 'Clone Recipe',
@@ -311,6 +318,15 @@ class LoadRecipeDetailScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  void _navigateToRangeSession(BuildContext context, LoadRecipe loadRecipe) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            AddRangeSessionWizard(initialLoadRecipeId: loadRecipe.id),
+      ),
     );
   }
 

@@ -4,6 +4,7 @@ import '../../providers/load_recipe_provider.dart';
 import '../../widgets/load_recipe_card.dart';
 import 'load_recipe_detail_screen.dart';
 import 'add_edit_load_recipe_wizard.dart';
+import '../range_sessions/add_range_session_wizard.dart';
 
 /// Main screen displaying the list of load recipes
 class LoadRecipesListScreen extends ConsumerStatefulWidget {
@@ -58,6 +59,8 @@ class _LoadRecipesListScreenState extends ConsumerState<LoadRecipesListScreen> {
                 return LoadRecipeCard(
                   loadRecipe: loadRecipe,
                   onTap: () => _navigateToDetail(loadRecipe.id),
+                  onStartRangeSession: () =>
+                      _navigateToRangeSession(loadRecipe.id),
                 );
               },
             );
@@ -181,6 +184,15 @@ class _LoadRecipesListScreenState extends ConsumerState<LoadRecipesListScreen> {
       MaterialPageRoute(
         builder: (context) =>
             LoadRecipeDetailScreen(loadRecipeId: loadRecipeId),
+      ),
+    );
+  }
+
+  void _navigateToRangeSession(String loadRecipeId) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            AddRangeSessionWizard(initialLoadRecipeId: loadRecipeId),
       ),
     );
   }

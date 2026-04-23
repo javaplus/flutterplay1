@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/firearm_provider.dart';
 import '../../../domain/entities/firearm.dart';
 import 'add_edit_firearm_wizard.dart';
+import '../range_sessions/add_range_session_wizard.dart';
 
 /// Detail screen for viewing a specific firearm
 class FirearmDetailScreen extends ConsumerWidget {
@@ -24,6 +25,11 @@ class FirearmDetailScreen extends ConsumerWidget {
               if (firearm == null) return const SizedBox.shrink();
               return Row(
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.track_changes),
+                    tooltip: 'Start Range Session',
+                    onPressed: () => _navigateToRangeSession(context, firearm),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.edit),
                     onPressed: () => _navigateToEdit(context, ref, firearm),
@@ -239,6 +245,15 @@ class FirearmDetailScreen extends ConsumerWidget {
 
   String _formatDate(DateTime date) {
     return '${date.month}/${date.day}/${date.year}';
+  }
+
+  void _navigateToRangeSession(BuildContext context, Firearm firearm) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) =>
+            AddRangeSessionWizard(initialFirearmId: firearm.id),
+      ),
+    );
   }
 
   void _navigateToEdit(
