@@ -124,6 +124,23 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
                     onChanged: (value) {
                       setState(() {
                         _selectedFirearmId = value;
+                        // Only clear the recipe if its cartridge no longer
+                        // matches the newly selected firearm's caliber
+                        if (_selectedLoadRecipeId != null && value != null) {
+                          final newFirearm = firearms
+                              .where((f) => f.id == value)
+                              .firstOrNull;
+                          final currentRecipe = ref
+                              .read(loadRecipesListProvider)
+                              .valueOrNull
+                              ?.where((r) => r.id == _selectedLoadRecipeId)
+                              .firstOrNull;
+                          if (newFirearm == null ||
+                              currentRecipe == null ||
+                              currentRecipe.cartridge != newFirearm.caliber) {
+                            _selectedLoadRecipeId = null;
+                          }
+                        }
                       });
                     },
                     validator: (value) {
@@ -139,9 +156,30 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
               ),
               const SizedBox(height: 16),
 
-              // Load Recipe selector
+              // Load Recipe selector — filtered by selected firearm's caliber
               loadRecipesAsync.when(
                 data: (loadRecipes) {
+                  // Find the selected firearm to get its caliber
+                  final selectedFirearm = firearmsAsync.valueOrNull
+                      ?.where((f) => f.id == _selectedFirearmId)
+                      .firstOrNull;
+
+                  // Filter recipes to those matching the firearm caliber,
+                  // or show all if no firearm is selected yet
+                  final filtered = selectedFirearm == null
+                      ? loadRecipes
+                      : loadRecipes
+                            .where(
+                              (r) => r.cartridge == selectedFirearm.caliber,
+                            )
+                            .toList();
+
+                  // Ensure the current selection is still in the filtered list
+                  final validSelection =
+                      filtered.any((r) => r.id == _selectedLoadRecipeId)
+                      ? _selectedLoadRecipeId
+                      : null;
+
                   if (loadRecipes.isEmpty) {
                     return Card(
                       color: Colors.orange[50],
@@ -153,14 +191,30 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
                       ),
                     );
                   }
+
+                  if (filtered.isEmpty) {
+                    return Card(
+                      color: Colors.orange[50],
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'No load recipes found for ${selectedFirearm!.caliber}. '
+                          'Add a recipe with that cartridge first.',
+                        ),
+                      ),
+                    );
+                  }
+
                   return DropdownButtonFormField<String>(
-                    value: _selectedLoadRecipeId,
-                    decoration: const InputDecoration(
-                      labelText: 'Load Recipe *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.science),
+                    value: validSelection,
+                    decoration: InputDecoration(
+                      labelText: selectedFirearm != null
+                          ? 'Load Recipe * (${selectedFirearm.caliber})'
+                          : 'Load Recipe *',
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.science),
                     ),
-                    items: loadRecipes.map((recipe) {
+                    items: filtered.map((recipe) {
                       return DropdownMenuItem(
                         value: recipe.id,
                         child: Text('${recipe.nickname} (${recipe.cartridge})'),
