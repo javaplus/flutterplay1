@@ -6,8 +6,14 @@ import '../../../domain/entities/firearm.dart';
 class FirearmCard extends StatelessWidget {
   final Firearm firearm;
   final VoidCallback onTap;
+  final VoidCallback? onStartRangeSession;
 
-  const FirearmCard({super.key, required this.firearm, required this.onTap});
+  const FirearmCard({
+    super.key,
+    required this.firearm,
+    required this.onTap,
+    this.onStartRangeSession,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +87,13 @@ class FirearmCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (onStartRangeSession != null)
+                IconButton(
+                  icon: const Icon(Icons.track_changes),
+                  tooltip: 'Start Range Session',
+                  onPressed: onStartRangeSession,
+                  visualDensity: VisualDensity.compact,
+                ),
               // Arrow icon
               Icon(Icons.chevron_right, color: Colors.grey[400]),
             ],

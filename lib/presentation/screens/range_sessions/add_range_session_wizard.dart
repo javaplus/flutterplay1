@@ -11,11 +11,13 @@ import 'range_session_detail_screen.dart';
 class AddRangeSessionWizard extends ConsumerStatefulWidget {
   final RangeSession? session;
   final String? initialLoadRecipeId;
+  final String? initialFirearmId;
 
   const AddRangeSessionWizard({
     super.key,
     this.session,
     this.initialLoadRecipeId,
+    this.initialFirearmId,
   });
 
   @override
@@ -48,8 +50,13 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
       _selectedLoadRecipeId = session.loadRecipeId;
       _weatherController.text = session.weather ?? '';
       _notesController.text = session.notes ?? '';
-    } else if (widget.initialLoadRecipeId != null) {
-      _selectedLoadRecipeId = widget.initialLoadRecipeId;
+    } else {
+      if (widget.initialLoadRecipeId != null) {
+        _selectedLoadRecipeId = widget.initialLoadRecipeId;
+      }
+      if (widget.initialFirearmId != null) {
+        _selectedFirearmId = widget.initialFirearmId;
+      }
     }
   }
 
