@@ -214,48 +214,20 @@ class _ChronographCameraScreenState
   }
 
   void _addManualVelocity() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) {
-        final controller = TextEditingController();
-        return AlertDialog(
-          title: const Text('Enter Velocity'),
-          content: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Velocity (fps)',
-              hintText: '2850',
-            ),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                final velocity = double.tryParse(controller.text);
-                if (velocity != null) {
-                  setState(() {
-                    _capturedVelocities.add(velocity);
-                  });
-                  await _saveVelocityToDatabase(velocity);
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                  }
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Invalid velocity')),
-                  );
-                }
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        );
-      },
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) => _ManualVelocitySheet(
+        onAddVelocity: (velocity) async {
+          setState(() {
+            _capturedVelocities.add(velocity);
+          });
+          await _saveVelocityToDatabase(velocity);
+        },
+      ),
     );
   }
 
@@ -618,6 +590,208 @@ class _ChronographCameraScreenState
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
         ),
       ],
+    );
+  }
+}
+
+/// Bottom sheet for adding multiple shot velocities in one session
+class _ManualVelocitySheet extends StatefulWidget {
+  final Future<void> Function(double velocity) onAddVelocity;
+
+  const _ManualVelocitySheet({required this.onAddVelocity});
+
+  @override
+  State<_ManualVelocitySheet> createState() => _ManualVelocitySheetState();
+}
+
+class _ManualVelocitySheetState extends State<_ManualVelocitySheet> {
+  final _controller = TextEditingController();
+  final _focusNode = FocusNode();
+  final List<double> _addedVelocities = [];
+  bool _isSaving = false;
+  String? _errorText;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final velocity = double.tryParse(_controller.text.trim());
+    if (velocity == null || velocity <= 0) {
+      setState(() => _errorText = 'Please enter a valid velocity');
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+      _errorText = null;
+    });
+
+    await widget.onAddVelocity(velocity);
+
+    if (mounted) {
+      setState(() {
+        _addedVelocities.insert(0, velocity);
+        _isSaving = false;
+      });
+      _controller.clear();
+      _focusNode.requestFocus();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title
+          Row(
+            children: [
+              const Icon(Icons.speed, size: 28),
+              const SizedBox(width: 12),
+              Text(
+                'Add Shot Velocities',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Velocity input
+          TextField(
+            controller: _controller,
+            focusNode: _focusNode,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            decoration: InputDecoration(
+              labelText: 'Velocity',
+              hintText: '2850',
+              suffixText: 'fps',
+              errorText: _errorText,
+              border: const OutlineInputBorder(),
+              filled: true,
+              fillColor: Colors.grey[100],
+            ),
+            onSubmitted: (_) => _isSaving ? null : _submit(),
+          ),
+          const SizedBox(height: 16),
+
+          // Add Shot button
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _isSaving ? null : _submit,
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Add Shot'),
+            ),
+          ),
+
+          // Running list of added velocities
+          if (_addedVelocities.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 8),
+            Text(
+              'Added this session (${_addedVelocities.length})',
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 160),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _addedVelocities.length,
+                itemBuilder: (context, index) {
+                  final v = _addedVelocities[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${v.toStringAsFixed(0)} fps',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        if (index == 0) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'latest',
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimaryContainer,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 16),
+
+          // Done button
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => Navigator.pop(context),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: const Text('Done'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
