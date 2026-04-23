@@ -5,6 +5,7 @@ import '../../../domain/entities/range_session.dart';
 import '../../providers/range_session_provider.dart';
 import '../../providers/firearm_provider.dart';
 import '../../providers/load_recipe_provider.dart';
+import 'range_session_detail_screen.dart';
 
 /// Wizard for adding or editing a range session
 class AddRangeSessionWizard extends ConsumerStatefulWidget {
@@ -273,7 +274,17 @@ class _AddRangeSessionWizardState extends ConsumerState<AddRangeSessionWizard> {
     ref.invalidate(rangeSessionsListProvider);
 
     if (mounted) {
-      Navigator.pop(context);
+      if (isEditing) {
+        Navigator.pop(context);
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                RangeSessionDetailScreen(sessionId: session.id),
+          ),
+        );
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
