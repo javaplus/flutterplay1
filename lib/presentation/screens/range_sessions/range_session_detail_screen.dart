@@ -591,19 +591,22 @@ class _TargetCard extends ConsumerWidget {
           children: [
             // Photo thumbnail (full-bleed at top of card)
             if (target.photoPath != null)
-              Image.file(
-                File(target.photoPath!),
-                height: 150,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
+              ColoredBox(
+                color: Colors.grey[100]!,
+                child: Image.file(
+                  File(target.photoPath!),
                   height: 150,
-                  color: Colors.grey[200],
-                  child: Center(
-                    child: Icon(
-                      Icons.broken_image,
-                      size: 40,
-                      color: Colors.grey[400],
+                  width: double.infinity,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 150,
+                    color: Colors.grey[200],
+                    child: Center(
+                      child: Icon(
+                        Icons.broken_image,
+                        size: 40,
+                        color: Colors.grey[400],
+                      ),
                     ),
                   ),
                 ),
