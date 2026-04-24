@@ -111,6 +111,38 @@ class LoadRecipeDetailScreen extends ConsumerWidget {
                 context,
               ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
             ),
+            if (loadRecipe.isFactoryAmmo) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.factory_outlined,
+                      size: 18,
+                      color: Colors.blue[700],
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Factory / Commercial Ammo',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.blue[700],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
 
             // Bullet Information
@@ -120,39 +152,53 @@ class LoadRecipeDetailScreen extends ConsumerWidget {
             ]),
             const SizedBox(height: 24),
 
-            // Powder Information
-            _buildSection(context, 'Powder', [
-              _buildInfoRow(context, 'Type', loadRecipe.powderType),
-              _buildInfoRow(context, 'Charge', '${loadRecipe.powderCharge}gr'),
-            ]),
-            const SizedBox(height: 24),
-
-            // Primer Information
-            _buildSection(context, 'Primer', [
-              _buildInfoRow(context, 'Type', loadRecipe.primerType),
-            ]),
-            const SizedBox(height: 24),
-
-            // Brass Information
-            _buildSection(context, 'Brass', [
-              _buildInfoRow(context, 'Type', loadRecipe.brassType),
-              if (loadRecipe.brassPrep != null &&
-                  loadRecipe.brassPrep!.isNotEmpty)
-                _buildInfoRow(context, 'Prep', loadRecipe.brassPrep!),
-            ]),
-            const SizedBox(height: 24),
-
-            // Cartridge Dimensions
-            _buildSection(context, 'Cartridge Dimensions', [
-              _buildInfoRow(context, 'COAL', '${loadRecipe.coalLength}"'),
-              if (loadRecipe.seatingDepth != null)
+            // Powder Information (handloads only)
+            if (!loadRecipe.isFactoryAmmo &&
+                loadRecipe.powderType != null &&
+                loadRecipe.powderCharge != null) ...[
+              _buildSection(context, 'Powder', [
+                _buildInfoRow(context, 'Type', loadRecipe.powderType!),
                 _buildInfoRow(
                   context,
-                  'Seating Depth',
-                  '${loadRecipe.seatingDepth}"',
+                  'Charge',
+                  '${loadRecipe.powderCharge}gr',
                 ),
-            ]),
-            const SizedBox(height: 24),
+              ]),
+              const SizedBox(height: 24),
+            ],
+
+            // Primer Information (handloads only)
+            if (!loadRecipe.isFactoryAmmo && loadRecipe.primerType != null) ...[
+              _buildSection(context, 'Primer', [
+                _buildInfoRow(context, 'Type', loadRecipe.primerType!),
+              ]),
+              const SizedBox(height: 24),
+            ],
+
+            // Brass Information (handloads only)
+            if (!loadRecipe.isFactoryAmmo && loadRecipe.brassType != null) ...[
+              _buildSection(context, 'Brass', [
+                _buildInfoRow(context, 'Type', loadRecipe.brassType!),
+                if (loadRecipe.brassPrep != null &&
+                    loadRecipe.brassPrep!.isNotEmpty)
+                  _buildInfoRow(context, 'Prep', loadRecipe.brassPrep!),
+              ]),
+              const SizedBox(height: 24),
+            ],
+
+            // Cartridge Dimensions (handloads only)
+            if (!loadRecipe.isFactoryAmmo && loadRecipe.coalLength != null) ...[
+              _buildSection(context, 'Cartridge Dimensions', [
+                _buildInfoRow(context, 'COAL', '${loadRecipe.coalLength}"'),
+                if (loadRecipe.seatingDepth != null)
+                  _buildInfoRow(
+                    context,
+                    'Seating Depth',
+                    '${loadRecipe.seatingDepth}"',
+                  ),
+              ]),
+              const SizedBox(height: 24),
+            ],
 
             // Crimp
             if (loadRecipe.crimp != null && loadRecipe.crimp!.isNotEmpty) ...[

@@ -27,7 +27,19 @@ class _AddEditLoadRecipeWizardState
   final _formKey = GlobalKey<FormState>();
   final _pageController = PageController();
   int _currentStep = 0;
-  final int _totalSteps = 4;
+  bool _isFactoryAmmo = false;
+
+  /// Total visible steps: 2 for factory ammo (Step1 + Step4),
+  /// 4 for handloads (all steps).
+  int get _totalSteps => _isFactoryAmmo ? 2 : 4;
+
+  /// Maps a logical step index (0-based among visible steps) to the
+  /// PageView page index. Factory ammo skips pages 1 and 2.
+  int _pageIndexForStep(int logicalStep) {
+    if (!_isFactoryAmmo) return logicalStep;
+    // Factory ammo: logical 0 → page 0, logical 1 → page 3
+    return logicalStep == 0 ? 0 : 3;
+  }
 
   // Form controllers
   final _nicknameController = TextEditingController();
@@ -61,12 +73,17 @@ class _AddEditLoadRecipeWizardState
       _cartridgeController.text = recipe.cartridge;
       _bulletWeightController.text = recipe.bulletWeight.toString();
       _bulletTypeController.text = recipe.bulletType;
-      _powderTypeController.text = recipe.powderType;
-      _powderChargeController.text = recipe.powderCharge.toString();
-      _primerTypeController.text = recipe.primerType;
-      _brassTypeController.text = recipe.brassType;
+      _isFactoryAmmo = recipe.isFactoryAmmo;
+      _powderTypeController.text = recipe.powderType ?? '';
+      _powderChargeController.text = recipe.powderCharge != null
+          ? recipe.powderCharge.toString()
+          : '';
+      _primerTypeController.text = recipe.primerType ?? '';
+      _brassTypeController.text = recipe.brassType ?? '';
       _brassPrepController.text = recipe.brassPrep ?? '';
-      _coalLengthController.text = recipe.coalLength.toString();
+      _coalLengthController.text = recipe.coalLength != null
+          ? recipe.coalLength.toString()
+          : '';
       _seatingDepthController.text = recipe.seatingDepth?.toString() ?? '';
       _crimpController.text = recipe.crimp ?? '';
       _notesController.text = recipe.notes ?? '';
@@ -200,6 +217,31 @@ class _AddEditLoadRecipeWizardState
               context,
             ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
           ),
+          const SizedBox(height: 16),
+
+          // Factory ammo toggle
+          Card(
+            margin: EdgeInsets.zero,
+            child: SwitchListTile(
+              value: _isFactoryAmmo,
+              onChanged: (value) {
+                setState(() {
+                  _isFactoryAmmo = value;
+                  // If toggling mid-wizard, reset to step 0 so the user
+                  // doesn't end up on an inaccessible logical step.
+                  if (_currentStep != 0) {
+                    _currentStep = 0;
+                    _pageController.jumpToPage(0);
+                  }
+                });
+              },
+              title: const Text('Factory / Commercial Ammo'),
+              subtitle: const Text(
+                'Skip powder, primer, brass & dimension fields',
+              ),
+              secondary: const Icon(Icons.factory_outlined),
+            ),
+          ),
           const SizedBox(height: 24),
 
           // Nickname
@@ -327,6 +369,7 @@ class _AddEditLoadRecipeWizardState
               prefixIcon: Icon(Icons.science),
             ),
             validator: (value) {
+              if (_isFactoryAmmo) return null;
               if (value == null || value.isEmpty) {
                 return 'Please enter powder type';
               }
@@ -350,6 +393,7 @@ class _AddEditLoadRecipeWizardState
               FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
             ],
             validator: (value) {
+              if (_isFactoryAmmo) return null;
               if (value == null || value.isEmpty) {
                 return 'Please enter powder charge';
               }
@@ -372,6 +416,7 @@ class _AddEditLoadRecipeWizardState
               prefixIcon: Icon(Icons.fiber_manual_record),
             ),
             validator: (value) {
+              if (_isFactoryAmmo) return null;
               if (value == null || value.isEmpty) {
                 return 'Please enter primer type';
               }
@@ -414,6 +459,7 @@ class _AddEditLoadRecipeWizardState
               prefixIcon: Icon(Icons.hardware),
             ),
             validator: (value) {
+              if (_isFactoryAmmo) return null;
               if (value == null || value.isEmpty) {
                 return 'Please enter brass type';
               }
@@ -450,6 +496,7 @@ class _AddEditLoadRecipeWizardState
               FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,4}')),
             ],
             validator: (value) {
+              if (_isFactoryAmmo) return null;
               if (value == null || value.isEmpty) {
                 return 'Please enter COAL';
               }
@@ -623,7 +670,7 @@ class _AddEditLoadRecipeWizardState
       setState(() {
         _currentStep++;
         _pageController.animateToPage(
-          _currentStep,
+          _pageIndexForStep(_currentStep),
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
         );
@@ -635,7 +682,7 @@ class _AddEditLoadRecipeWizardState
     setState(() {
       _currentStep--;
       _pageController.animateToPage(
-        _currentStep,
+        _pageIndexForStep(_currentStep),
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
@@ -680,18 +727,24 @@ class _AddEditLoadRecipeWizardState
       cartridge: _cartridgeController.text.trim(),
       bulletWeight: double.parse(_bulletWeightController.text),
       bulletType: _bulletTypeController.text.trim(),
-      powderType: _powderTypeController.text.trim(),
-      powderCharge: double.parse(_powderChargeController.text),
-      primerType: _primerTypeController.text.trim(),
-      brassType: _brassTypeController.text.trim(),
-      brassPrep: _brassPrepController.text.trim().isEmpty
+      isFactoryAmmo: _isFactoryAmmo,
+      powderType: _isFactoryAmmo ? null : _powderTypeController.text.trim(),
+      powderCharge: _isFactoryAmmo
+          ? null
+          : double.tryParse(_powderChargeController.text),
+      primerType: _isFactoryAmmo ? null : _primerTypeController.text.trim(),
+      brassType: _isFactoryAmmo ? null : _brassTypeController.text.trim(),
+      brassPrep: _isFactoryAmmo || _brassPrepController.text.trim().isEmpty
           ? null
           : _brassPrepController.text.trim(),
-      coalLength: double.parse(_coalLengthController.text),
-      seatingDepth: _seatingDepthController.text.trim().isEmpty
+      coalLength: _isFactoryAmmo
+          ? null
+          : double.tryParse(_coalLengthController.text),
+      seatingDepth:
+          _isFactoryAmmo || _seatingDepthController.text.trim().isEmpty
           ? null
           : double.tryParse(_seatingDepthController.text),
-      crimp: _crimpController.text.trim().isEmpty
+      crimp: _isFactoryAmmo || _crimpController.text.trim().isEmpty
           ? null
           : _crimpController.text.trim(),
       pressureSigns: _selectedPressureSigns.toList(),

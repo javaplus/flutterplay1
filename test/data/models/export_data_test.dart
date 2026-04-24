@@ -329,6 +329,9 @@ void main() {
     });
 
     test('handles missing nullable fields in LoadRecipeExport', () {
+      // Simulates an old v1 export where powderType/powderCharge/primerType/
+      // brassType/coalLength were required (all handloads). These must still
+      // deserialize correctly — backwards compatibility is preserved.
       final json = {
         'id': 'recipe-1',
         'nickname': 'Test Load',
@@ -342,16 +345,74 @@ void main() {
         'coalLength': 2.800,
         'pressureSigns': <String>[],
         // brassPrep, seatingDepth, crimp, notes missing
+        // isFactoryAmmo absent — should default to false
         'createdAt': '2026-01-01T00:00:00.000Z',
         'updatedAt': '2026-04-21T00:00:00.000Z',
       };
 
       final recipe = LoadRecipeExport.fromJson(json);
 
+      expect(recipe.isFactoryAmmo, isFalse);
+      expect(recipe.powderType, 'Varget');
+      expect(recipe.powderCharge, 44.0);
+      expect(recipe.primerType, 'CCI BR-2');
+      expect(recipe.brassType, 'Lapua');
+      expect(recipe.coalLength, 2.800);
       expect(recipe.brassPrep, isNull);
       expect(recipe.seatingDepth, isNull);
       expect(recipe.crimp, isNull);
       expect(recipe.notes, isNull);
+    });
+
+    test('factory ammo export omits powder/brass fields', () {
+      final original = LoadRecipeExport(
+        id: 'factory-1',
+        nickname: 'Federal Gold Medal 168gr',
+        cartridge: '.308 Winchester',
+        bulletWeight: 168.0,
+        bulletType: 'Sierra MatchKing HPBT',
+        isFactoryAmmo: true,
+        // powderType, powderCharge, primerType, brassType, coalLength all null
+        pressureSigns: [],
+        notes: 'Factory match ammo',
+        createdAt: DateTime.parse('2026-01-01T00:00:00Z'),
+        updatedAt: DateTime.parse('2026-04-21T00:00:00Z'),
+      );
+
+      final json = original.toJson();
+      final deserialized = LoadRecipeExport.fromJson(json);
+
+      expect(deserialized.isFactoryAmmo, isTrue);
+      expect(deserialized.powderType, isNull);
+      expect(deserialized.powderCharge, isNull);
+      expect(deserialized.primerType, isNull);
+      expect(deserialized.brassType, isNull);
+      expect(deserialized.coalLength, isNull);
+      expect(deserialized.nickname, 'Federal Gold Medal 168gr');
+      expect(deserialized.notes, 'Factory match ammo');
+    });
+
+    test('factory ammo roundtrips through toEntity and fromEntity', () {
+      final export = LoadRecipeExport(
+        id: 'factory-1',
+        nickname: 'Federal Gold Medal 168gr',
+        cartridge: '.308 Winchester',
+        bulletWeight: 168.0,
+        bulletType: 'Sierra MatchKing HPBT',
+        isFactoryAmmo: true,
+        pressureSigns: [],
+        createdAt: DateTime.parse('2026-01-01T00:00:00Z'),
+        updatedAt: DateTime.parse('2026-04-21T00:00:00Z'),
+      );
+
+      final entity = export.toEntity();
+      expect(entity.isFactoryAmmo, isTrue);
+      expect(entity.powderType, isNull);
+      expect(entity.coalLength, isNull);
+
+      final roundTripped = LoadRecipeExport.fromEntity(entity);
+      expect(roundTripped.isFactoryAmmo, isTrue);
+      expect(roundTripped.powderType, isNull);
     });
   });
 

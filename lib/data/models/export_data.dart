@@ -271,12 +271,13 @@ class LoadRecipeExport {
   final String cartridge;
   final double bulletWeight;
   final String bulletType;
-  final String powderType;
-  final double powderCharge;
-  final String primerType;
-  final String brassType;
+  final bool isFactoryAmmo;
+  final String? powderType;
+  final double? powderCharge;
+  final String? primerType;
+  final String? brassType;
   final String? brassPrep;
-  final double coalLength;
+  final double? coalLength;
   final double? seatingDepth;
   final String? crimp;
   final List<String> pressureSigns;
@@ -290,12 +291,13 @@ class LoadRecipeExport {
     required this.cartridge,
     required this.bulletWeight,
     required this.bulletType,
-    required this.powderType,
-    required this.powderCharge,
-    required this.primerType,
-    required this.brassType,
+    this.isFactoryAmmo = false,
+    this.powderType,
+    this.powderCharge,
+    this.primerType,
+    this.brassType,
     this.brassPrep,
-    required this.coalLength,
+    this.coalLength,
     this.seatingDepth,
     this.crimp,
     required this.pressureSigns,
@@ -311,6 +313,7 @@ class LoadRecipeExport {
       cartridge: recipe.cartridge,
       bulletWeight: recipe.bulletWeight,
       bulletType: recipe.bulletType,
+      isFactoryAmmo: recipe.isFactoryAmmo,
       powderType: recipe.powderType,
       powderCharge: recipe.powderCharge,
       primerType: recipe.primerType,
@@ -333,6 +336,7 @@ class LoadRecipeExport {
       cartridge: cartridge,
       bulletWeight: bulletWeight,
       bulletType: bulletType,
+      isFactoryAmmo: isFactoryAmmo,
       powderType: powderType,
       powderCharge: powderCharge,
       primerType: primerType,
@@ -355,6 +359,7 @@ class LoadRecipeExport {
       'cartridge': cartridge,
       'bulletWeight': bulletWeight,
       'bulletType': bulletType,
+      'isFactoryAmmo': isFactoryAmmo,
       'powderType': powderType,
       'powderCharge': powderCharge,
       'primerType': primerType,
@@ -377,16 +382,17 @@ class LoadRecipeExport {
       cartridge: json['cartridge'] as String,
       bulletWeight: (json['bulletWeight'] as num).toDouble(),
       bulletType: json['bulletType'] as String,
-      powderType: json['powderType'] as String,
-      powderCharge: (json['powderCharge'] as num).toDouble(),
+      isFactoryAmmo: json['isFactoryAmmo'] as bool? ?? false,
+      powderType: json['powderType'] as String?,
+      powderCharge: (json['powderCharge'] as num?)?.toDouble(),
 
       ///
       /// ⚠️ PROTECTED CLASS: Changes may break backwards compatibility
       /// Schema: schemas/export_v1.json#/definitions/rangeSession
-      primerType: json['primerType'] as String,
-      brassType: json['brassType'] as String,
+      primerType: json['primerType'] as String?,
+      brassType: json['brassType'] as String?,
       brassPrep: json['brassPrep'] as String?,
-      coalLength: (json['coalLength'] as num).toDouble(),
+      coalLength: (json['coalLength'] as num?)?.toDouble(),
       seatingDepth: (json['seatingDepth'] as num?)?.toDouble(),
       crimp: json['crimp'] as String?,
       pressureSigns: List<String>.from(json['pressureSigns'] as List),

@@ -6,12 +6,15 @@ class LoadRecipe {
   final String cartridge; // e.g., ".308 Win"
   final double bulletWeight; // In grains
   final String bulletType; // e.g., "FMJ", "HPBT"
-  final String powderType;
-  final double powderCharge; // In grains
-  final String primerType;
-  final String brassType; // Brand/type of brass
+  final bool
+  isFactoryAmmo; // True for factory/commercial ammo (skips powder/primer/brass fields)
+  final String? powderType; // null for factory ammo
+  final double? powderCharge; // In grains; null for factory ammo
+  final String? primerType; // null for factory ammo
+  final String? brassType; // Brand/type of brass; null for factory ammo
   final String? brassPrep; // Prep notes (annealed, resized, etc.) - optional
-  final double coalLength; // Cartridge Overall Length in inches
+  final double?
+  coalLength; // Cartridge Overall Length in inches; null for factory ammo
   final double? seatingDepth; // In inches - optional
   final String? crimp; // Text field for crimp info - optional
   final List<String> pressureSigns; // Multiple pressure sign indicators
@@ -25,12 +28,13 @@ class LoadRecipe {
     required this.cartridge,
     required this.bulletWeight,
     required this.bulletType,
-    required this.powderType,
-    required this.powderCharge,
-    required this.primerType,
-    required this.brassType,
+    this.isFactoryAmmo = false,
+    this.powderType,
+    this.powderCharge,
+    this.primerType,
+    this.brassType,
     this.brassPrep,
-    required this.coalLength,
+    this.coalLength,
     this.seatingDepth,
     this.crimp,
     this.pressureSigns = const [],
@@ -39,23 +43,35 @@ class LoadRecipe {
     required this.updatedAt,
   });
 
-  /// Creates a copy of this LoadRecipe with the given fields replaced
+  /// Creates a copy of this LoadRecipe with the given fields replaced.
+  /// Use [clearPowderType], [clearPowderCharge], etc. sentinel booleans to
+  /// explicitly set nullable fields to null.
   LoadRecipe copyWith({
     String? id,
     String? nickname,
     String? cartridge,
     double? bulletWeight,
     String? bulletType,
+    bool? isFactoryAmmo,
     String? powderType,
+    bool clearPowderType = false,
     double? powderCharge,
+    bool clearPowderCharge = false,
     String? primerType,
+    bool clearPrimerType = false,
     String? brassType,
+    bool clearBrassType = false,
     String? brassPrep,
+    bool clearBrassPrep = false,
     double? coalLength,
+    bool clearCoalLength = false,
     double? seatingDepth,
+    bool clearSeatingDepth = false,
     String? crimp,
+    bool clearCrimp = false,
     List<String>? pressureSigns,
     String? notes,
+    bool clearNotes = false,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -65,16 +81,21 @@ class LoadRecipe {
       cartridge: cartridge ?? this.cartridge,
       bulletWeight: bulletWeight ?? this.bulletWeight,
       bulletType: bulletType ?? this.bulletType,
-      powderType: powderType ?? this.powderType,
-      powderCharge: powderCharge ?? this.powderCharge,
-      primerType: primerType ?? this.primerType,
-      brassType: brassType ?? this.brassType,
-      brassPrep: brassPrep ?? this.brassPrep,
-      coalLength: coalLength ?? this.coalLength,
-      seatingDepth: seatingDepth ?? this.seatingDepth,
-      crimp: crimp ?? this.crimp,
+      isFactoryAmmo: isFactoryAmmo ?? this.isFactoryAmmo,
+      powderType: clearPowderType ? null : (powderType ?? this.powderType),
+      powderCharge: clearPowderCharge
+          ? null
+          : (powderCharge ?? this.powderCharge),
+      primerType: clearPrimerType ? null : (primerType ?? this.primerType),
+      brassType: clearBrassType ? null : (brassType ?? this.brassType),
+      brassPrep: clearBrassPrep ? null : (brassPrep ?? this.brassPrep),
+      coalLength: clearCoalLength ? null : (coalLength ?? this.coalLength),
+      seatingDepth: clearSeatingDepth
+          ? null
+          : (seatingDepth ?? this.seatingDepth),
+      crimp: clearCrimp ? null : (crimp ?? this.crimp),
       pressureSigns: pressureSigns ?? this.pressureSigns,
-      notes: notes ?? this.notes,
+      notes: clearNotes ? null : (notes ?? this.notes),
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -82,7 +103,7 @@ class LoadRecipe {
 
   @override
   String toString() {
-    return 'LoadRecipe(id: $id, nickname: $nickname, cartridge: $cartridge, bulletWeight: $bulletWeight, powderType: $powderType)';
+    return 'LoadRecipe(id: $id, nickname: $nickname, cartridge: $cartridge, bulletWeight: $bulletWeight, isFactoryAmmo: $isFactoryAmmo, powderType: $powderType)';
   }
 
   @override

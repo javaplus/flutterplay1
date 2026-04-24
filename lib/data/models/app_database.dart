@@ -23,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(QueryExecutor e) : super(e);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -72,6 +72,54 @@ class AppDatabase extends _$AppDatabase {
         // Migration from version 8 to 9: Add nickname to LoadRecipes
         await m.deleteTable('load_recipes');
         await m.createTable(loadRecipes);
+      }
+      if (from < 10) {
+        // Migration from version 9 to 10: Add isFactoryAmmo; make powderType,
+        // powderCharge, primerType, brassType, coalLength nullable.
+        // Use a data-preserving migration to avoid losing existing handload data.
+        await m.database.customStatement('''
+          CREATE TABLE load_recipes_new (
+            load_id TEXT NOT NULL,
+            nickname TEXT NOT NULL,
+            cartridge TEXT NOT NULL,
+            bullet_weight REAL NOT NULL,
+            bullet_type TEXT NOT NULL,
+            is_factory_ammo INTEGER NOT NULL DEFAULT 0,
+            powder_type TEXT,
+            powder_charge REAL,
+            primer_type TEXT,
+            brass_type TEXT,
+            brass_prep TEXT,
+            coal_length REAL,
+            seating_depth REAL,
+            crimp TEXT,
+            pressure_signs TEXT NOT NULL,
+            notes TEXT,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL,
+            PRIMARY KEY (load_id)
+          )
+          ''');
+        await m.database.customStatement('''
+          INSERT INTO load_recipes_new (
+            load_id, nickname, cartridge, bullet_weight, bullet_type,
+            is_factory_ammo,
+            powder_type, powder_charge, primer_type, brass_type, brass_prep,
+            coal_length, seating_depth, crimp, pressure_signs, notes,
+            created_at, updated_at
+          )
+          SELECT
+            load_id, nickname, cartridge, bullet_weight, bullet_type,
+            0,
+            powder_type, powder_charge, primer_type, brass_type, brass_prep,
+            coal_length, seating_depth, crimp, pressure_signs, notes,
+            created_at, updated_at
+          FROM load_recipes
+          ''');
+        await m.database.customStatement('DROP TABLE load_recipes');
+        await m.database.customStatement(
+          'ALTER TABLE load_recipes_new RENAME TO load_recipes',
+        );
       }
     },
   );
@@ -135,6 +183,7 @@ extension LoadRecipeExtension on LoadRecipeData {
       cartridge: cartridge,
       bulletWeight: bulletWeight,
       bulletType: bulletType,
+      isFactoryAmmo: isFactoryAmmo,
       powderType: powderType,
       powderCharge: powderCharge,
       primerType: primerType,
@@ -160,6 +209,7 @@ extension LoadRecipeCompanionExtension on domain_load.LoadRecipe {
       cartridge: Value(cartridge),
       bulletWeight: Value(bulletWeight),
       bulletType: Value(bulletType),
+      isFactoryAmmo: Value(isFactoryAmmo),
       powderType: Value(powderType),
       powderCharge: Value(powderCharge),
       primerType: Value(primerType),
