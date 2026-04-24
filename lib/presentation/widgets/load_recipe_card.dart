@@ -6,12 +6,14 @@ class LoadRecipeCard extends StatelessWidget {
   final LoadRecipe loadRecipe;
   final VoidCallback onTap;
   final VoidCallback? onStartRangeSession;
+  final VoidCallback? onViewSessions;
 
   const LoadRecipeCard({
     super.key,
     required this.loadRecipe,
     required this.onTap,
     this.onStartRangeSession,
+    this.onViewSessions,
   });
 
   @override
@@ -38,6 +40,13 @@ class LoadRecipeCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (onViewSessions != null)
+                    IconButton(
+                      icon: const Icon(Icons.list_alt),
+                      tooltip: 'View Range Sessions',
+                      onPressed: onViewSessions,
+                      visualDensity: VisualDensity.compact,
+                    ),
                   if (onStartRangeSession != null)
                     IconButton(
                       icon: const Icon(Icons.track_changes),
