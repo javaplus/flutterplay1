@@ -55,9 +55,9 @@ class LoadRecipeLocalDataSource {
       return data.nickname.toLowerCase().contains(lowerQuery) ||
           data.cartridge.toLowerCase().contains(lowerQuery) ||
           data.bulletType.toLowerCase().contains(lowerQuery) ||
-          data.powderType.toLowerCase().contains(lowerQuery) ||
-          data.primerType.toLowerCase().contains(lowerQuery) ||
-          data.brassType.toLowerCase().contains(lowerQuery);
+          (data.powderType?.toLowerCase().contains(lowerQuery) ?? false) ||
+          (data.primerType?.toLowerCase().contains(lowerQuery) ?? false) ||
+          (data.brassType?.toLowerCase().contains(lowerQuery) ?? false);
     }).toList();
 
     return filtered.map((data) => data.toEntity()).toList();

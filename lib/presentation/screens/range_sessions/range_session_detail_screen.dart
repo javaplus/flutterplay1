@@ -138,9 +138,15 @@ class RangeSessionDetailScreen extends ConsumerWidget {
                       _buildInfoRow(
                         context,
                         'Powder',
-                        '${loadRecipe.powderType} - ${loadRecipe.powderCharge}gr',
+                        loadRecipe.isFactoryAmmo
+                            ? 'Factory Ammo'
+                            : '${loadRecipe.powderType} - ${loadRecipe.powderCharge}gr',
                       ),
-                      _buildInfoRow(context, 'Primer', loadRecipe.primerType),
+                      _buildInfoRow(
+                        context,
+                        'Primer',
+                        loadRecipe.primerType ?? 'N/A',
+                      ),
                     ]),
                     const SizedBox(height: 24),
                   ],

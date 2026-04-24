@@ -118,35 +118,55 @@ class LoadRecipeCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              // Powder info
-              Row(
-                children: [
-                  Icon(Icons.science, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${loadRecipe.powderType} • ${loadRecipe.powderCharge.toStringAsFixed(1)}gr',
-                      style: Theme.of(context).textTheme.bodyMedium,
+              // Powder info or factory ammo badge
+              if (loadRecipe.isFactoryAmmo)
+                Row(
+                  children: [
+                    Icon(
+                      Icons.factory_outlined,
+                      size: 16,
+                      color: Colors.blue[600],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Factory / Commercial Ammo',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.blue[700],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                )
+              else ...[
+                Row(
+                  children: [
+                    Icon(Icons.science, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${loadRecipe.powderType} • ${loadRecipe.powderCharge?.toStringAsFixed(1)}gr',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
 
-              // Brass and primer info
-              Row(
-                children: [
-                  Icon(Icons.hardware, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      '${loadRecipe.brassType} • ${loadRecipe.primerType}',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                      overflow: TextOverflow.ellipsis,
+                // Brass and primer info
+                Row(
+                  children: [
+                    Icon(Icons.hardware, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${loadRecipe.brassType} • ${loadRecipe.primerType}',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
 
               // Pressure signs warning (if any)
               if (loadRecipe.pressureSigns.isNotEmpty) ...[

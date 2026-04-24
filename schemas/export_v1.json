@@ -211,11 +211,6 @@
         "cartridge",
         "bulletWeight",
         "bulletType",
-        "powderType",
-        "powderCharge",
-        "primerType",
-        "brassType",
-        "coalLength",
         "pressureSigns",
         "createdAt",
         "updatedAt"
@@ -246,34 +241,35 @@
           "minLength": 1,
           "description": "Bullet type/brand (e.g., 'Sierra MatchKing HPBT')"
         },
+        "isFactoryAmmo": {
+          "type": "boolean",
+          "description": "True for factory/commercial ammo (powder/primer/brass fields may be absent)"
+        },
         "powderType": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Powder type/brand (e.g., 'Varget')"
+          "type": ["string", "null"],
+          "description": "Powder type/brand (e.g., 'Varget'); null for factory ammo"
         },
         "powderCharge": {
-          "type": "number",
+          "type": ["number", "null"],
           "minimum": 0,
-          "description": "Powder charge in grains"
+          "description": "Powder charge in grains; null for factory ammo"
         },
         "primerType": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Primer type (e.g., 'CCI BR-2')"
+          "type": ["string", "null"],
+          "description": "Primer type (e.g., 'CCI BR-2'); null for factory ammo"
         },
         "brassType": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Brass brand (e.g., 'Lapua')"
+          "type": ["string", "null"],
+          "description": "Brass brand (e.g., 'Lapua'); null for factory ammo"
         },
         "brassPrep": {
           "type": ["string", "null"],
           "description": "Optional brass preparation notes"
         },
         "coalLength": {
-          "type": "number",
+          "type": ["number", "null"],
           "minimum": 0,
-          "description": "Cartridge Overall Length in inches"
+          "description": "Cartridge Overall Length in inches; null for factory ammo"
         },
         "seatingDepth": {
           "type": ["number", "null"],
