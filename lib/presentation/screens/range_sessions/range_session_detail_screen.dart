@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -98,68 +99,10 @@ class RangeSessionDetailScreen extends ConsumerWidget {
             ]),
             const SizedBox(height: 24),
 
-            // Firearm Information
-            firearmAsync.when(
-              data: (firearm) {
-                if (firearm == null) return const SizedBox.shrink();
-                return Column(
-                  children: [
-                    _buildSection(context, 'Firearm', [
-                      _buildInfoRow(context, 'Name', firearm.name),
-                      _buildInfoRow(
-                        context,
-                        'Make/Model',
-                        '${firearm.make} ${firearm.model}',
-                      ),
-                      _buildInfoRow(context, 'Caliber', firearm.caliber),
-                    ]),
-                    const SizedBox(height: 24),
-                  ],
-                );
-              },
-              loading: () => const CircularProgressIndicator(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-
-            // Load Recipe Information
-            loadRecipeAsync.when(
-              data: (loadRecipe) {
-                if (loadRecipe == null) return const SizedBox.shrink();
-                return Column(
-                  children: [
-                    _buildSection(context, 'Load Recipe', [
-                      _buildInfoRow(context, 'Nickname', loadRecipe.nickname),
-                      _buildInfoRow(context, 'Cartridge', loadRecipe.cartridge),
-                      _buildInfoRow(
-                        context,
-                        'Bullet',
-                        '${loadRecipe.bulletWeight}gr ${loadRecipe.bulletType}',
-                      ),
-                      _buildInfoRow(
-                        context,
-                        'Powder',
-                        loadRecipe.isFactoryAmmo
-                            ? 'Factory Ammo'
-                            : '${loadRecipe.powderType} - ${loadRecipe.powderCharge}gr',
-                      ),
-                      _buildInfoRow(
-                        context,
-                        'Primer',
-                        loadRecipe.primerType ?? 'N/A',
-                      ),
-                    ]),
-                    const SizedBox(height: 24),
-                  ],
-                );
-              },
-              loading: () => const CircularProgressIndicator(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-
-            // Overall Velocity Statistics
+            // Session Performance — hero stats card
             targetsAsync.when(
               data: (targets) {
-                return _buildOverallVelocityStats(context, ref, targets);
+                return _buildHeroStatsCard(context, ref, targets);
               },
               loading: () => const SizedBox.shrink(),
               error: (_, __) => const SizedBox.shrink(),
@@ -220,7 +163,66 @@ class RangeSessionDetailScreen extends ConsumerWidget {
               _buildSection(context, 'Notes', [
                 _buildInfoRow(context, '', session.notes!, singleValue: true),
               ]),
+              const SizedBox(height: 24),
             ],
+
+            // Firearm Information (context — scrolled to bottom)
+            firearmAsync.when(
+              data: (firearm) {
+                if (firearm == null) return const SizedBox.shrink();
+                return Column(
+                  children: [
+                    _buildSection(context, 'Firearm', [
+                      _buildInfoRow(context, 'Name', firearm.name),
+                      _buildInfoRow(
+                        context,
+                        'Make/Model',
+                        '${firearm.make} ${firearm.model}',
+                      ),
+                      _buildInfoRow(context, 'Caliber', firearm.caliber),
+                    ]),
+                    const SizedBox(height: 24),
+                  ],
+                );
+              },
+              loading: () => const CircularProgressIndicator(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
+
+            // Load Recipe Information (context — scrolled to bottom)
+            loadRecipeAsync.when(
+              data: (loadRecipe) {
+                if (loadRecipe == null) return const SizedBox.shrink();
+                return Column(
+                  children: [
+                    _buildSection(context, 'Load Recipe', [
+                      _buildInfoRow(context, 'Nickname', loadRecipe.nickname),
+                      _buildInfoRow(context, 'Cartridge', loadRecipe.cartridge),
+                      _buildInfoRow(
+                        context,
+                        'Bullet',
+                        '${loadRecipe.bulletWeight}gr ${loadRecipe.bulletType}',
+                      ),
+                      _buildInfoRow(
+                        context,
+                        'Powder',
+                        loadRecipe.isFactoryAmmo
+                            ? 'Factory Ammo'
+                            : '${loadRecipe.powderType} - ${loadRecipe.powderCharge}gr',
+                      ),
+                      _buildInfoRow(
+                        context,
+                        'Primer',
+                        loadRecipe.primerType ?? 'N/A',
+                      ),
+                    ]),
+                    const SizedBox(height: 24),
+                  ],
+                );
+              },
+              loading: () => const CircularProgressIndicator(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
           ],
         ),
       ),
@@ -363,13 +365,11 @@ class RangeSessionDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildOverallVelocityStats(
+  Widget _buildHeroStatsCard(
     BuildContext context,
     WidgetRef ref,
     List<Target> targets,
   ) {
-    if (targets.isEmpty) return const SizedBox.shrink();
-
     // Collect all velocities from all targets
     List<double> allVelocities = [];
     int totalShots = 0;
@@ -384,7 +384,39 @@ class RangeSessionDetailScreen extends ConsumerWidget {
       });
     }
 
-    if (allVelocities.isEmpty) return const SizedBox.shrink();
+    final colorScheme = Theme.of(context).colorScheme;
+
+    if (allVelocities.isEmpty) {
+      return Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.speed_outlined,
+                  size: 28,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  'No velocity data recorded yet',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+      );
+    }
 
     // Calculate overall statistics
     final avgVelocity =
@@ -393,7 +425,6 @@ class RangeSessionDetailScreen extends ConsumerWidget {
     final maxVelocity = allVelocities.reduce((a, b) => a > b ? a : b);
     final extremeSpread = maxVelocity - minVelocity;
 
-    // Calculate standard deviation
     double calculateSD() {
       if (allVelocities.length < 2) return 0.0;
       final sumSquaredDiff = allVelocities
@@ -407,35 +438,125 @@ class RangeSessionDetailScreen extends ConsumerWidget {
 
     return Column(
       children: [
-        _buildSection(context, 'Overall Velocity Statistics', [
-          _buildInfoRow(context, 'Total Shots', '$totalShots'),
-          _buildInfoRow(
-            context,
-            'Average Velocity',
-            '${avgVelocity.toStringAsFixed(1)} fps',
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(12),
           ),
-          _buildInfoRow(
-            context,
-            'Standard Deviation',
-            '${standardDeviation.toStringAsFixed(2)} fps',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Session Performance',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: colorScheme.onPrimaryContainer,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    avgVelocity.toStringAsFixed(0),
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      color: colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.bold,
+                      height: 1.0,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      'fps avg',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        // ignore: deprecated_member_use
+                        color: colorScheme.onPrimaryContainer.withOpacity(0.8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Divider(
+                height: 1,
+                // ignore: deprecated_member_use
+                color: colorScheme.onPrimaryContainer.withOpacity(0.2),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildHeroStat(
+                      context,
+                      label: 'Total Shots',
+                      value: '$totalShots',
+                      colorScheme: colorScheme,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildHeroStat(
+                      context,
+                      label: 'Std Dev',
+                      value: '${standardDeviation.toStringAsFixed(1)} fps',
+                      colorScheme: colorScheme,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildHeroStat(
+                      context,
+                      label: 'Ext Spread',
+                      value: '${extremeSpread.toStringAsFixed(1)} fps',
+                      colorScheme: colorScheme,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildHeroStat(
+                      context,
+                      label: 'Min / Max',
+                      value:
+                          '${minVelocity.toStringAsFixed(0)} / ${maxVelocity.toStringAsFixed(0)}',
+                      colorScheme: colorScheme,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          _buildInfoRow(
-            context,
-            'Extreme Spread',
-            '${extremeSpread.toStringAsFixed(1)} fps',
-          ),
-          _buildInfoRow(
-            context,
-            'Min Velocity',
-            '${minVelocity.toStringAsFixed(0)} fps',
-          ),
-          _buildInfoRow(
-            context,
-            'Max Velocity',
-            '${maxVelocity.toStringAsFixed(0)} fps',
-          ),
-        ]),
+        ),
         const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildHeroStat(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required ColorScheme colorScheme,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            // ignore: deprecated_member_use
+            color: colorScheme.onPrimaryContainer.withOpacity(0.7),
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: colorScheme.onPrimaryContainer,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }
@@ -461,90 +582,101 @@ class _TargetCard extends ConsumerWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header row with basic info and menu
-              Row(
-                children: [
-                  Icon(
-                    Icons.filter_center_focus,
-                    size: 16,
-                    color: Colors.grey[600],
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: velocitiesAsync.when(
-                      data: (velocities) {
-                        final shotCount = velocities.length;
-                        return Text(
-                          '${target.distance} yards • ${shotCount > 0 ? shotCount : target.numberOfShots} shots',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        );
-                      },
-                      loading: () => Text(
-                        '${target.distance} yards • ${target.numberOfShots} shots',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      error: (_, __) => Text(
-                        '${target.distance} yards • ${target.numberOfShots} shots',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Photo thumbnail (full-bleed at top of card)
+            if (target.photoPath != null)
+              Image.file(
+                File(target.photoPath!),
+                height: 150,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: 150,
+                  color: Colors.grey[200],
+                  child: Center(
+                    child: Icon(
+                      Icons.broken_image,
+                      size: 40,
+                      color: Colors.grey[400],
                     ),
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-
-              // Target Statistics Section
-              velocitiesAsync.when(
-                data: (velocities) {
-                  return _buildTargetStatistics(context, target, velocities);
-                },
-                loading: () => _buildLoadingStatistics(context),
-                error: (_, __) => _buildEmptyStatistics(context),
-              ),
-
-              // Notes
-              if (target.notes != null && target.notes!.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  target.notes!,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                 ),
-              ],
+              ),
 
-              // Photo indicator
-              if (target.photoPath != null) ...[
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Icons.photo, size: 14, color: Colors.grey[600]),
-                    const SizedBox(width: 4),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header row with basic info and menu
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.filter_center_focus,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: velocitiesAsync.when(
+                          data: (velocities) {
+                            final shotCount = velocities.length;
+                            return Text(
+                              '${target.distance} yards • ${shotCount > 0 ? shotCount : target.numberOfShots} shots',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            );
+                          },
+                          loading: () => Text(
+                            '${target.distance} yards • ${target.numberOfShots} shots',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          error: (_, __) => Text(
+                            '${target.distance} yards • ${target.numberOfShots} shots',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Target Statistics Section
+                  velocitiesAsync.when(
+                    data: (velocities) {
+                      return _buildTargetStatistics(
+                        context,
+                        target,
+                        velocities,
+                      );
+                    },
+                    loading: () => _buildLoadingStatistics(context),
+                    error: (_, __) => _buildEmptyStatistics(context),
+                  ),
+
+                  // Notes
+                  if (target.notes != null && target.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
                     Text(
-                      'Photo attached',
+                      target.notes!,
                       style: Theme.of(
                         context,
                       ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                     ),
                   ],
-                ),
-              ],
-            ],
-          ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
