@@ -81,3 +81,47 @@ final loadRecipeNotifierProvider =
       final repository = ref.watch(loadRecipeRepositoryProvider);
       return LoadRecipeNotifier(repository);
     });
+
+/// Provider for distinct field values across all recipes.
+/// Used for autocomplete suggestions in the wizard and filter chips in the list.
+final distinctRecipeFieldValuesProvider = Provider<Map<String, List<String>>>((
+  ref,
+) {
+  final recipesAsync = ref.watch(loadRecipesListProvider);
+  return recipesAsync.maybeWhen(
+    data: (recipes) {
+      final cartridges = <String>{};
+      final bulletTypes = <String>{};
+      final powderTypes = <String>{};
+      final primerTypes = <String>{};
+      final brassTypes = <String>{};
+      for (final recipe in recipes) {
+        cartridges.add(recipe.cartridge);
+        if (recipe.bulletType.isNotEmpty) bulletTypes.add(recipe.bulletType);
+        if (recipe.powderType?.isNotEmpty == true) {
+          powderTypes.add(recipe.powderType!);
+        }
+        if (recipe.primerType?.isNotEmpty == true) {
+          primerTypes.add(recipe.primerType!);
+        }
+        if (recipe.brassType?.isNotEmpty == true) {
+          brassTypes.add(recipe.brassType!);
+        }
+      }
+      return {
+        'cartridge': (cartridges.toList()..sort()),
+        'bulletType': (bulletTypes.toList()..sort()),
+        'powderType': (powderTypes.toList()..sort()),
+        'primerType': (primerTypes.toList()..sort()),
+        'brassType': (brassTypes.toList()..sort()),
+      };
+    },
+    orElse: () => {
+      'cartridge': <String>[],
+      'bulletType': <String>[],
+      'powderType': <String>[],
+      'primerType': <String>[],
+      'brassType': <String>[],
+    },
+  );
+});

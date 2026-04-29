@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../../domain/entities/load_recipe.dart';
 import '../../providers/load_recipe_provider.dart';
 import '../../../core/constants/calibers.dart';
+// distinctRecipeFieldValuesProvider is imported via load_recipe_provider.dart
 
 /// Multi-step wizard for adding or editing a load recipe
 class AddEditLoadRecipeWizard extends ConsumerStatefulWidget {
@@ -318,14 +319,14 @@ class _AddEditLoadRecipeWizardState
           const SizedBox(height: 16),
 
           // Bullet Type
-          TextFormField(
+          _AutocompleteFormField(
             controller: _bulletTypeController,
-            decoration: const InputDecoration(
-              labelText: 'Bullet Type *',
-              hintText: 'e.g., HPBT, FMJ, Polymer Tip',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.category),
-            ),
+            suggestions:
+                ref.watch(distinctRecipeFieldValuesProvider)['bulletType'] ??
+                [],
+            labelText: 'Bullet Type *',
+            hintText: 'e.g., HPBT, FMJ, Polymer Tip',
+            prefixIcon: Icons.category,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'Please enter bullet type';
@@ -360,14 +361,14 @@ class _AddEditLoadRecipeWizardState
           const SizedBox(height: 24),
 
           // Powder Type
-          TextFormField(
+          _AutocompleteFormField(
             controller: _powderTypeController,
-            decoration: const InputDecoration(
-              labelText: 'Powder Type *',
-              hintText: 'e.g., H4895, Varget, IMR 4064',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.science),
-            ),
+            suggestions:
+                ref.watch(distinctRecipeFieldValuesProvider)['powderType'] ??
+                [],
+            labelText: 'Powder Type *',
+            hintText: 'e.g., H4895, Varget, IMR 4064',
+            prefixIcon: Icons.science,
             validator: (value) {
               if (_isFactoryAmmo) return null;
               if (value == null || value.isEmpty) {
@@ -407,14 +408,14 @@ class _AddEditLoadRecipeWizardState
           const SizedBox(height: 16),
 
           // Primer Type
-          TextFormField(
+          _AutocompleteFormField(
             controller: _primerTypeController,
-            decoration: const InputDecoration(
-              labelText: 'Primer Type *',
-              hintText: 'e.g., CCI 200, Federal 210M',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.fiber_manual_record),
-            ),
+            suggestions:
+                ref.watch(distinctRecipeFieldValuesProvider)['primerType'] ??
+                [],
+            labelText: 'Primer Type *',
+            hintText: 'e.g., CCI 200, Federal 210M',
+            prefixIcon: Icons.fiber_manual_record,
             validator: (value) {
               if (_isFactoryAmmo) return null;
               if (value == null || value.isEmpty) {
@@ -450,14 +451,13 @@ class _AddEditLoadRecipeWizardState
           const SizedBox(height: 24),
 
           // Brass Type
-          TextFormField(
+          _AutocompleteFormField(
             controller: _brassTypeController,
-            decoration: const InputDecoration(
-              labelText: 'Brass Type *',
-              hintText: 'e.g., Lapua, Winchester, Federal',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.hardware),
-            ),
+            suggestions:
+                ref.watch(distinctRecipeFieldValuesProvider)['brassType'] ?? [],
+            labelText: 'Brass Type *',
+            hintText: 'e.g., Lapua, Winchester, Federal',
+            prefixIcon: Icons.hardware,
             validator: (value) {
               if (_isFactoryAmmo) return null;
               if (value == null || value.isEmpty) {
@@ -780,5 +780,82 @@ class _AddEditLoadRecipeWizardState
         ),
       );
     }
+  }
+}
+
+/// A [TextFormField] with autocomplete suggestions drawn from [suggestions].
+///
+/// Syncs typed/selected values back to [controller] so the surrounding
+/// [Form] validation and save logic works without any changes.
+class _AutocompleteFormField extends StatefulWidget {
+  final TextEditingController controller;
+  final List<String> suggestions;
+  final String labelText;
+  final String hintText;
+  final IconData prefixIcon;
+  final String? Function(String?)? validator;
+
+  const _AutocompleteFormField({
+    required this.controller,
+    required this.suggestions,
+    required this.labelText,
+    required this.hintText,
+    required this.prefixIcon,
+    this.validator,
+  });
+
+  @override
+  State<_AutocompleteFormField> createState() => _AutocompleteFormFieldState();
+}
+
+class _AutocompleteFormFieldState extends State<_AutocompleteFormField> {
+  /// Set to true after the listener is wired to the Autocomplete-managed
+  /// fieldController, ensuring we only add it once across rebuilds.
+  bool _listenerAdded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Autocomplete<String>(
+      initialValue: TextEditingValue(text: widget.controller.text),
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        if (widget.suggestions.isEmpty) {
+          return const Iterable<String>.empty();
+        }
+        final query = textEditingValue.text.toLowerCase();
+        // Show all suggestions when field is empty so it acts as a picker.
+        if (query.isEmpty) return widget.suggestions;
+        return widget.suggestions.where((s) => s.toLowerCase().contains(query));
+      },
+      onSelected: (String value) {
+        widget.controller.text = value;
+      },
+      fieldViewBuilder:
+          (
+            BuildContext context,
+            TextEditingController fieldController,
+            FocusNode focusNode,
+            VoidCallback onFieldSubmitted,
+          ) {
+            // Wire the Autocomplete-internal controller to our external controller
+            // once. The fieldController is the same object across rebuilds.
+            if (!_listenerAdded) {
+              _listenerAdded = true;
+              fieldController.addListener(() {
+                widget.controller.text = fieldController.text;
+              });
+            }
+            return TextFormField(
+              controller: fieldController,
+              focusNode: focusNode,
+              decoration: InputDecoration(
+                labelText: widget.labelText,
+                hintText: widget.hintText,
+                border: const OutlineInputBorder(),
+                prefixIcon: Icon(widget.prefixIcon),
+              ),
+              validator: widget.validator,
+            );
+          },
+    );
   }
 }
