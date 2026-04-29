@@ -19,7 +19,31 @@ class LoadRecipesListScreen extends ConsumerStatefulWidget {
 class _LoadRecipesListScreenState extends ConsumerState<LoadRecipesListScreen> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+
   Set<String> _selectedCartridges = {};
+  Set<String> _selectedBulletTypes = {};
+  Set<String> _selectedPowderTypes = {};
+  Set<String> _selectedPrimerTypes = {};
+  Set<String> _selectedBrassTypes = {};
+
+  int get _totalActiveFilters =>
+      _selectedCartridges.length +
+      _selectedBulletTypes.length +
+      _selectedPowderTypes.length +
+      _selectedPrimerTypes.length +
+      _selectedBrassTypes.length;
+
+  bool get _hasActiveFilters => _totalActiveFilters > 0;
+
+  void _clearAllFilters() {
+    setState(() {
+      _selectedCartridges.clear();
+      _selectedBulletTypes.clear();
+      _selectedPowderTypes.clear();
+      _selectedPrimerTypes.clear();
+      _selectedBrassTypes.clear();
+    });
+  }
 
   @override
   void dispose() {
@@ -29,17 +53,14 @@ class _LoadRecipesListScreenState extends ConsumerState<LoadRecipesListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Always watch the full list to derive available cartridges
     final allRecipesAsync = ref.watch(loadRecipesListProvider);
     final loadRecipesAsync = _searchQuery.isEmpty
         ? allRecipesAsync
         : ref.watch(loadRecipeSearchProvider(_searchQuery));
+    final fieldValues = ref.watch(distinctRecipeFieldValuesProvider);
 
-    // Derive sorted distinct cartridges from all recipes
-    final allCartridges = allRecipesAsync.maybeWhen(
-      data: (list) => (list.map((r) => r.cartridge).toSet().toList()..sort()),
-      orElse: () => <String>[],
-    );
+    final hasAnyFilterOptions =
+        fieldValues.values.any((list) => list.isNotEmpty);
 
     return Scaffold(
       appBar: AppBar(
@@ -51,14 +72,14 @@ class _LoadRecipesListScreenState extends ConsumerState<LoadRecipesListScreen> {
             onPressed: _showSearchDialog,
           ),
           Badge(
-            isLabelVisible: _selectedCartridges.isNotEmpty,
-            label: Text('${_selectedCartridges.length}'),
+            isLabelVisible: _hasActiveFilters,
+            label: Text('$_totalActiveFilters'),
             child: IconButton(
               icon: const Icon(Icons.filter_list),
-              tooltip: 'Filter by cartridge',
-              onPressed: allCartridges.isEmpty
-                  ? null
-                  : () => _showCartridgeFilter(allCartridges),
+              tooltip: 'Filter recipes',
+              onPressed: hasAnyFilterOptions
+                  ? () => _showFilterSheet(fieldValues)
+                  : null,
             ),
           ),
         ],
@@ -66,31 +87,15 @@ class _LoadRecipesListScreenState extends ConsumerState<LoadRecipesListScreen> {
       body: Column(
         children: [
           // Active filter chip row
-          if (_selectedCartridges.isNotEmpty)
+          if (_hasActiveFilters)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 children: [
-                  ..._selectedCartridges.map(
-                    (cartridge) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(cartridge),
-                        selected: true,
-                        onSelected: (_) => setState(
-                          () => _selectedCartridges.remove(cartridge),
-                        ),
-                        deleteIcon: const Icon(Icons.close, size: 16),
-                        onDeleted: () => setState(
-                          () => _selectedCartridges.remove(cartridge),
-                        ),
-                      ),
-                    ),
-                  ),
+                  ..._buildActiveFilterChips(),
                   TextButton(
-                    onPressed: () =>
-                        setState(() => _selectedCartridges.clear()),
+                    onPressed: _clearAllFilters,
                     child: const Text('Clear all'),
                   ),
                 ],
@@ -103,14 +108,7 @@ class _LoadRecipesListScreenState extends ConsumerState<LoadRecipesListScreen> {
               },
               child: loadRecipesAsync.when(
                 data: (loadRecipes) {
-                  // Apply cartridge filter client-side
-                  final filtered = _selectedCartridges.isEmpty
-                      ? loadRecipes
-                      : loadRecipes
-                            .where(
-                              (r) => _selectedCartridges.contains(r.cartridge),
-                            )
-                            .toList();
+                  final filtered = _applyFilters(loadRecipes);
 
                   if (filtered.isEmpty) {
                     return _buildEmptyState();
@@ -131,7 +129,8 @@ class _LoadRecipesListScreenState extends ConsumerState<LoadRecipesListScreen> {
                     },
                   );
                 },
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
                 error: (error, stack) => Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -174,13 +173,86 @@ class _LoadRecipesListScreenState extends ConsumerState<LoadRecipesListScreen> {
     );
   }
 
+  List<Widget> _buildActiveFilterChips() {
+    final chips = <Widget>[];
+
+    void addChips(Set<String> selection, void Function(String) onRemove) {
+      for (final value in selection) {
+        chips.add(
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: Text(value),
+              selected: true,
+              onSelected: (_) => onRemove(value),
+              deleteIcon: const Icon(Icons.close, size: 16),
+              onDeleted: () => onRemove(value),
+            ),
+          ),
+        );
+      }
+    }
+
+    addChips(
+      _selectedCartridges,
+      (v) => setState(() => _selectedCartridges.remove(v)),
+    );
+    addChips(
+      _selectedBulletTypes,
+      (v) => setState(() => _selectedBulletTypes.remove(v)),
+    );
+    addChips(
+      _selectedPowderTypes,
+      (v) => setState(() => _selectedPowderTypes.remove(v)),
+    );
+    addChips(
+      _selectedPrimerTypes,
+      (v) => setState(() => _selectedPrimerTypes.remove(v)),
+    );
+    addChips(
+      _selectedBrassTypes,
+      (v) => setState(() => _selectedBrassTypes.remove(v)),
+    );
+
+    return chips;
+  }
+
+  List _applyFilters(List loadRecipes) {
+    if (!_hasActiveFilters) return loadRecipes;
+    return loadRecipes.where((r) {
+      if (_selectedCartridges.isNotEmpty &&
+          !_selectedCartridges.contains(r.cartridge)) {
+        return false;
+      }
+      if (_selectedBulletTypes.isNotEmpty &&
+          !_selectedBulletTypes.contains(r.bulletType)) {
+        return false;
+      }
+      if (_selectedPowderTypes.isNotEmpty &&
+          !(r.powderType != null &&
+              _selectedPowderTypes.contains(r.powderType))) {
+        return false;
+      }
+      if (_selectedPrimerTypes.isNotEmpty &&
+          !(r.primerType != null &&
+              _selectedPrimerTypes.contains(r.primerType))) {
+        return false;
+      }
+      if (_selectedBrassTypes.isNotEmpty &&
+          !(r.brassType != null &&
+              _selectedBrassTypes.contains(r.brassType))) {
+        return false;
+      }
+      return true;
+    }).toList();
+  }
+
   Widget _buildEmptyState() {
-    final isFiltered = _selectedCartridges.isNotEmpty;
     final String title;
     final String subtitle;
-    if (isFiltered) {
-      title = 'No recipes match the selected cartridge(s)';
-      subtitle = 'Try adjusting or clearing the cartridge filter';
+    if (_hasActiveFilters) {
+      title = 'No recipes match the active filters';
+      subtitle = 'Try adjusting or clearing the filters';
     } else if (_searchQuery.isNotEmpty) {
       title = 'No recipes found';
       subtitle = 'Try a different search term';
@@ -210,12 +282,12 @@ class _LoadRecipesListScreenState extends ConsumerState<LoadRecipesListScreen> {
             ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
             textAlign: TextAlign.center,
           ),
-          if (isFiltered) ...[
+          if (_hasActiveFilters) ...[
             const SizedBox(height: 24),
             OutlinedButton.icon(
-              onPressed: () => setState(() => _selectedCartridges.clear()),
+              onPressed: _clearAllFilters,
               icon: const Icon(Icons.filter_list_off),
-              label: const Text('Clear Filter'),
+              label: const Text('Clear Filters'),
             ),
           ] else if (_searchQuery.isEmpty) ...[
             const SizedBox(height: 24),
@@ -307,139 +379,280 @@ class _LoadRecipesListScreenState extends ConsumerState<LoadRecipesListScreen> {
     );
   }
 
-  void _showCartridgeFilter(List<String> allCartridges) {
+  void _showFilterSheet(Map<String, List<String>> fieldValues) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (sheetContext) => _CartridgeFilterSheet(
-        allCartridges: allCartridges,
-        initialSelection: Set.from(_selectedCartridges),
-        onApply: (selected) => setState(() => _selectedCartridges = selected),
+      builder: (sheetContext) => _RecipeFilterSheet(
+        allCartridges: fieldValues['cartridge'] ?? [],
+        allBulletTypes: fieldValues['bulletType'] ?? [],
+        allPowderTypes: fieldValues['powderType'] ?? [],
+        allPrimerTypes: fieldValues['primerType'] ?? [],
+        allBrassTypes: fieldValues['brassType'] ?? [],
+        selectedCartridges: Set.from(_selectedCartridges),
+        selectedBulletTypes: Set.from(_selectedBulletTypes),
+        selectedPowderTypes: Set.from(_selectedPowderTypes),
+        selectedPrimerTypes: Set.from(_selectedPrimerTypes),
+        selectedBrassTypes: Set.from(_selectedBrassTypes),
+        onApply: ({
+          required Set<String> cartridges,
+          required Set<String> bulletTypes,
+          required Set<String> powderTypes,
+          required Set<String> primerTypes,
+          required Set<String> brassTypes,
+        }) {
+          setState(() {
+            _selectedCartridges = cartridges;
+            _selectedBulletTypes = bulletTypes;
+            _selectedPowderTypes = powderTypes;
+            _selectedPrimerTypes = primerTypes;
+            _selectedBrassTypes = brassTypes;
+          });
+        },
       ),
     );
   }
 }
 
-/// Bottom sheet for selecting cartridge filters
-class _CartridgeFilterSheet extends StatefulWidget {
+/// Unified bottom sheet for filtering recipes across all component fields.
+class _RecipeFilterSheet extends StatefulWidget {
   final List<String> allCartridges;
-  final Set<String> initialSelection;
-  final void Function(Set<String>) onApply;
+  final List<String> allBulletTypes;
+  final List<String> allPowderTypes;
+  final List<String> allPrimerTypes;
+  final List<String> allBrassTypes;
+  final Set<String> selectedCartridges;
+  final Set<String> selectedBulletTypes;
+  final Set<String> selectedPowderTypes;
+  final Set<String> selectedPrimerTypes;
+  final Set<String> selectedBrassTypes;
+  final void Function({
+    required Set<String> cartridges,
+    required Set<String> bulletTypes,
+    required Set<String> powderTypes,
+    required Set<String> primerTypes,
+    required Set<String> brassTypes,
+  })
+  onApply;
 
-  const _CartridgeFilterSheet({
+  const _RecipeFilterSheet({
     required this.allCartridges,
-    required this.initialSelection,
+    required this.allBulletTypes,
+    required this.allPowderTypes,
+    required this.allPrimerTypes,
+    required this.allBrassTypes,
+    required this.selectedCartridges,
+    required this.selectedBulletTypes,
+    required this.selectedPowderTypes,
+    required this.selectedPrimerTypes,
+    required this.selectedBrassTypes,
     required this.onApply,
   });
 
   @override
-  State<_CartridgeFilterSheet> createState() => _CartridgeFilterSheetState();
+  State<_RecipeFilterSheet> createState() => _RecipeFilterSheetState();
 }
 
-class _CartridgeFilterSheetState extends State<_CartridgeFilterSheet> {
-  late Set<String> _selection;
+class _RecipeFilterSheetState extends State<_RecipeFilterSheet> {
+  late Set<String> _cartridges;
+  late Set<String> _bulletTypes;
+  late Set<String> _powderTypes;
+  late Set<String> _primerTypes;
+  late Set<String> _brassTypes;
 
   @override
   void initState() {
     super.initState();
-    _selection = Set.from(widget.initialSelection);
+    _cartridges = Set.from(widget.selectedCartridges);
+    _bulletTypes = Set.from(widget.selectedBulletTypes);
+    _powderTypes = Set.from(widget.selectedPowderTypes);
+    _primerTypes = Set.from(widget.selectedPrimerTypes);
+    _brassTypes = Set.from(widget.selectedBrassTypes);
   }
+
+  int get _totalSelected =>
+      _cartridges.length +
+      _bulletTypes.length +
+      _powderTypes.length +
+      _primerTypes.length +
+      _brassTypes.length;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        top: 24,
-        left: 24,
-        right: 24,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (context, scrollController) => Column(
         children: [
-          // Title row
-          Row(
-            children: [
-              const Icon(Icons.filter_list, size: 28),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Filter by Cartridge',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
+          // Drag handle
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 8),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[400],
+                borderRadius: BorderRadius.circular(2),
               ),
-              if (_selection.isNotEmpty)
-                TextButton(
-                  onPressed: () => setState(() => _selection.clear()),
-                  child: const Text('Clear all'),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // Cartridge checkboxes
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.4,
             ),
+          ),
+          // Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Row(
+              children: [
+                const Icon(Icons.filter_list, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Filter Recipes',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                if (_totalSelected > 0)
+                  TextButton(
+                    onPressed: () => setState(() {
+                      _cartridges.clear();
+                      _bulletTypes.clear();
+                      _powderTypes.clear();
+                      _primerTypes.clear();
+                      _brassTypes.clear();
+                    }),
+                    child: const Text('Clear all'),
+                  ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          // Scrollable filter sections
+          Expanded(
             child: ListView(
-              shrinkWrap: true,
-              children: widget.allCartridges.map((cartridge) {
-                return CheckboxListTile(
-                  title: Text(cartridge),
-                  value: _selection.contains(cartridge),
-                  onChanged: (checked) {
-                    setState(() {
-                      if (checked == true) {
-                        _selection.add(cartridge);
-                      } else {
-                        _selection.remove(cartridge);
-                      }
-                    });
-                  },
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                );
-              }).toList(),
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+              children: [
+                if (widget.allCartridges.isNotEmpty) ...[
+                  _buildSection('Caliber', widget.allCartridges, _cartridges),
+                  const SizedBox(height: 20),
+                ],
+                if (widget.allBulletTypes.isNotEmpty) ...[
+                  _buildSection(
+                    'Bullet Type',
+                    widget.allBulletTypes,
+                    _bulletTypes,
+                  ),
+                  const SizedBox(height: 20),
+                ],
+                if (widget.allPowderTypes.isNotEmpty) ...[
+                  _buildSection('Powder', widget.allPowderTypes, _powderTypes),
+                  const SizedBox(height: 20),
+                ],
+                if (widget.allPrimerTypes.isNotEmpty) ...[
+                  _buildSection('Primer', widget.allPrimerTypes, _primerTypes),
+                  const SizedBox(height: 20),
+                ],
+                if (widget.allBrassTypes.isNotEmpty) ...[
+                  _buildSection('Brass', widget.allBrassTypes, _brassTypes),
+                  const SizedBox(height: 20),
+                ],
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-
           // Action buttons
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+          const Divider(height: 1),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              24,
+              12,
+              24,
+              MediaQuery.of(context).padding.bottom + 12,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Cancel'),
                   ),
-                  child: const Text('Cancel'),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: FilledButton(
-                  onPressed: () {
-                    widget.onApply(_selection);
-                    Navigator.pop(context);
-                  },
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () {
+                      widget.onApply(
+                        cartridges: _cartridges,
+                        bulletTypes: _bulletTypes,
+                        powderTypes: _powderTypes,
+                        primerTypes: _primerTypes,
+                        brassTypes: _brassTypes,
+                      );
+                      Navigator.pop(context);
+                    },
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: Text(
+                      _totalSelected > 0
+                          ? 'Apply ($_totalSelected)'
+                          : 'Apply',
+                    ),
                   ),
-                  child: const Text('Apply'),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSection(
+    String label,
+    List<String> options,
+    Set<String> selection,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[700],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: options.map((option) {
+            final selected = selection.contains(option);
+            return FilterChip(
+              label: Text(option),
+              selected: selected,
+              onSelected: (checked) {
+                setState(() {
+                  if (checked) {
+                    selection.add(option);
+                  } else {
+                    selection.remove(option);
+                  }
+                });
+              },
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 }
